@@ -239,9 +239,9 @@ export default function Home() {
             <div className="tool-bar">
               <button aria-label="사진 추가" onClick={() => setPanel("photo")}><ImageIcon/></button>
               <button aria-label="위치 추가" onClick={() => setPanel("location")}><MapPin/></button>
-              <button aria-label="링크 추가" onClick={() => setPanel("link")}><Link2/></button>
-              <button aria-label="투표 추가" onClick={() => setPanel("poll")}><SquareCheckBig/></button>
-              <button className="quote-tool" aria-label="게시물 인용" onClick={() => setPanel("quote")}><MessageSquareQuote/></button>
+              <button aria-label="링크 추가" disabled={!!selectedPhoto} onClick={() => setPanel("link")}><Link2/></button>
+              <button aria-label="투표 추가" disabled={!!selectedPhoto} onClick={() => setPanel("poll")}><SquareCheckBig/></button>
+              <button className="quote-tool" aria-label="게시물 인용" disabled={!!selectedPhoto} onClick={() => setPanel("quote")}><MessageSquareQuote/></button>
               <button aria-label="이모티콘" onClick={() => setPanel("emoji")}><Smile/></button>
               <i/>
               <button className="ai-button" aria-label="AI 추천" onClick={() => setPanel("ai")}><Sparkles/><b>AI</b></button>
@@ -276,7 +276,7 @@ export default function Home() {
         {panel && panel !== "quote" && <div className={`phone-overlay ${panel === "success" ? "solid" : ""}`} onMouseDown={() => panel !== "success" && setPanel(null)}>
           <section className={`mobile-sheet panel-${panel}`} role="dialog" aria-modal="true" aria-label="추가 설정" onMouseDown={event => event.stopPropagation()}>
             {panel !== "success" && <><div className="sheet-handle"/><button className="sheet-close" aria-label="닫기" onClick={() => setPanel(null)}><X/></button></>}
-            {panel === "photo" && <><h3>사진/동영상</h3><div className="sheet-tabs"><button className="active">최근 항목</button><button>즐겨찾기</button></div><div className="photo-grid">{photos.map((photo,index) => <button key={photo} onClick={() => {setSelectedPhoto(photo);setPanel(null);}}><img src={photo} alt={`여행 사진 ${index+1}`}/><span>{index+1}</span></button>)}</div></>}
+            {panel === "photo" && <><h3>사진/동영상</h3><div className="sheet-tabs"><button className="active">최근 항목</button><button>즐겨찾기</button></div><div className="photo-grid">{photos.map((photo,index) => <button key={photo} onClick={() => {setSelectedPhoto(photo);setLink(null);setPoll(false);setQuotedPost(false);setPanel(null);}}><img src={photo} alt={`여행 사진 ${index+1}`}/><span>{index+1}</span></button>)}</div></>}
             {panel === "location" && <><h3>위치</h3><label className="sheet-search"><Search/><input placeholder="장소 검색" autoFocus/></label><div className="place-list">{["Sydney Opera House","판교역","Darling Harbour","The Rocks, Sydney"].map(place => <button key={place} onClick={() => {setLocation(place);setPanel(null);}}><span><MapPin/></span><div><b>{place}</b><small>추천 위치</small></div><i><Plus/></i></button>)}</div></>}
             {panel === "link" && <><h3>링크</h3><label className="sheet-input">URL 입력<input defaultValue="https://www.sydney.com/" autoFocus/></label><div className="link-preview"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>sydney.com</small></div></div><button className="sheet-primary" onClick={() => {setLink("https://www.sydney.com/");setPanel(null);}}>링크 추가</button></>}
             {panel === "poll" && <><h3>투표</h3><label className="sheet-input">투표 제목<input defaultValue="다음 영화 후기 주제는?"/></label><label className="sheet-input">선택지 1<input defaultValue="오디세이 세계관"/></label><label className="sheet-input">선택지 2<input defaultValue="고대 신화 속 영웅"/></label><button className="sheet-primary" onClick={() => {setPoll(true);setPanel(null);}}>투표 만들기</button></>}
