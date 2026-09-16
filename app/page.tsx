@@ -255,9 +255,9 @@ export default function Home() {
           </div>
         </div>}
 
-        {panel === "quote" && <div className="phone-overlay solid quote-overlay">
-          <section className="quote-picker" role="dialog" aria-modal="true" aria-label="인용할 게시물 선택">
-            <StatusBar/>
+        {panel === "quote" && <div className="phone-overlay quote-overlay" onMouseDown={() => setPanel(null)}>
+          <section className="quote-picker" role="dialog" aria-modal="true" aria-label="인용할 게시물 선택" onMouseDown={event => event.stopPropagation()}>
+            <div className="quote-sheet-handle"/>
             <header><button onClick={() => setPanel(null)}>취소</button><b>인용할 게시물을 선택하세요</b><span/></header>
             <nav className="quote-tabs" aria-label="인용 게시물 분류">
               <button className={quoteTab === "liked" ? "active" : ""} onClick={() => setQuoteTab("liked")}><Heart/>좋아요</button>
