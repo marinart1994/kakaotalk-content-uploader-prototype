@@ -54,6 +54,7 @@ export default function Home() {
   const selectionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const editorBodyRef = useRef<HTMLDivElement | null>(null);
+  const isComposingRef = useRef(false);
 
   const topicSuggestions = copy.includes("오디세이") || copy.includes("신화") || copy.includes("영화")
     ? ["오디세이", "고대 신화", "영화 후기"]
@@ -68,7 +69,22 @@ export default function Home() {
     window.setTimeout(() => setToast(null), 1800);
   };
 
-  const addKey = (key: string) => setCopy(value => `${value}${key}`);
+  const setEditorText = (value: string) => {
+    setCopy(value);
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.textContent = value;
+    editor.focus();
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  };
+
+  const addKey = (key: string) => setEditorText(`${editorRef.current?.textContent ?? copy}${key}`);
+  const removeLastCharacter = () => setEditorText(Array.from(editorRef.current?.textContent ?? copy).slice(0, -1).join(""));
 
   const resetComposer = () => {
     setView("feed");
@@ -167,7 +183,22 @@ export default function Home() {
               <div className="editor-line"><Avatar/><i/><button aria-label="콘텐츠 추가"><Plus/></button></div>
               <div className="editor-body" ref={editorBodyRef}>
                 <b>춘식크루</b>
-                <div ref={editorRef} className="text-editor" role="textbox" aria-label="게시글 내용" aria-multiline="true" contentEditable suppressContentEditableWarning onInput={event => { setCopy(event.currentTarget.textContent || ""); setShowSelectionMenu(false); }} onMouseUp={handleEditorSelection} onTouchEnd={handleEditorSelection} onKeyUp={handleEditorSelection} onBlur={() => window.setTimeout(() => setShowSelectionMenu(false), 160)}>{copy}</div>
+                <div
+                  ref={editorRef}
+                  className="text-editor"
+                  role="textbox"
+                  aria-label="게시글 내용"
+                  aria-multiline="true"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onCompositionStart={() => { isComposingRef.current = true; }}
+                  onCompositionEnd={event => { isComposingRef.current = false; setCopy(event.currentTarget.textContent || ""); }}
+                  onInput={event => { if (!isComposingRef.current) setCopy(event.currentTarget.textContent || ""); setShowSelectionMenu(false); }}
+                  onMouseUp={handleEditorSelection}
+                  onTouchEnd={handleEditorSelection}
+                  onKeyUp={() => { if (!isComposingRef.current) handleEditorSelection(); }}
+                  onBlur={() => window.setTimeout(() => setShowSelectionMenu(false), 160)}
+                />
                 {showSelectionMenu && <div className="selection-tools" style={{ left: selectionMenuPosition.left, top: selectionMenuPosition.top }}><button onMouseDown={event => event.preventDefault()} onClick={() => flash("내용을 오려냈어요")}>오려두기</button><button onMouseDown={event => event.preventDefault()} onClick={() => navigator.clipboard?.writeText(window.getSelection()?.toString() || copy)}>복사하기</button><button onMouseDown={event => event.preventDefault()} onClick={() => flash("클립보드 내용을 붙여넣었어요")}>붙여넣기</button><button onMouseDown={event => event.preventDefault()} className={spoiler ? "active" : ""} onClick={() => setSpoiler(!spoiler)}>스포방지로 표시</button><button><ChevronRight/></button></div>}
                 {selectedPhoto && <div className="editor-photo"><img src={selectedPhoto} alt="첨부한 사진"/><button onClick={() => setSelectedPhoto(null)}>×</button></div>}
                 {location && <div className="editor-attachment"><span>⌖</span><div><small>위치</small><b>{location}</b></div><button onClick={() => setLocation(null)}>×</button></div>}
@@ -197,7 +228,7 @@ export default function Home() {
             </div>
             <div className="fake-keyboard">
               <div className="suggestions"><span>I</span><span>The</span><span>I’m</span></div>
-              {keyboardRows.map((row, rowIndex) => <div className={`key-row row-${rowIndex}`} key={row}>{rowIndex === 2 && <button className="wide-key" onClick={() => addKey("⇧")}>⬆</button>}{[...row].map(key => <button key={key} onClick={() => addKey(key)}>{key}</button>)}{rowIndex === 2 && <button className="wide-key" onClick={() => setCopy(value => value.slice(0,-1))}>⌫</button>}</div>)}
+              {keyboardRows.map((row, rowIndex) => <div className={`key-row row-${rowIndex}`} key={row}>{rowIndex === 2 && <button className="wide-key" onClick={() => addKey("⇧")}>⬆</button>}{[...row].map(key => <button key={key} onClick={() => addKey(key)}>{key}</button>)}{rowIndex === 2 && <button className="wide-key" onClick={removeLastCharacter}>⌫</button>}</div>)}
               <div className="key-row utility-row"><button>123</button><button onClick={() => setPanel("emoji")}>☺</button><button className="space" onClick={() => addKey(" ")}>space <small>EN</small></button><button onClick={() => addKey("\n")}>↵</button></div>
               <div className="keyboard-foot"><button aria-label="키보드 언어"><Globe2/></button><button aria-label="음성 입력"><Mic/></button></div>
             </div>
@@ -211,8 +242,8 @@ export default function Home() {
             {panel === "location" && <><h3>위치</h3><label className="sheet-search"><Search/><input placeholder="장소 검색" autoFocus/></label><div className="place-list">{["Sydney Opera House","판교역","Darling Harbour","The Rocks, Sydney"].map(place => <button key={place} onClick={() => {setLocation(place);setPanel(null);}}><span><MapPin/></span><div><b>{place}</b><small>추천 위치</small></div><i><Plus/></i></button>)}</div></>}
             {panel === "link" && <><h3>링크</h3><label className="sheet-input">URL 입력<input defaultValue="https://www.sydney.com/" autoFocus/></label><div className="link-preview"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>sydney.com</small></div></div><button className="sheet-primary" onClick={() => {setLink("https://www.sydney.com/");setPanel(null);}}>링크 추가</button></>}
             {panel === "poll" && <><h3>투표</h3><label className="sheet-input">투표 제목<input defaultValue="다음 영화 후기 주제는?"/></label><label className="sheet-input">선택지 1<input defaultValue="오디세이 세계관"/></label><label className="sheet-input">선택지 2<input defaultValue="고대 신화 속 영웅"/></label><button className="sheet-primary" onClick={() => {setPoll(true);setPanel(null);}}>투표 만들기</button></>}
-            {panel === "mention" && <><h3>친구 태그</h3><label className="sheet-search"><Search/><input placeholder="이름, 전화번호 검색" autoFocus/></label><div className="place-list friends">{["춘식이","죠르디","라이언","어피치"].map((friend,index) => <button key={friend} onClick={() => {setCopy(value => `${value} @${friend}`);setPanel(null);}}><Avatar kind={index === 2 ? "lion" : "crew"}/><div><b>{friend}</b><small>친구</small></div><i><Plus/></i></button>)}</div></>}
-            {panel === "emoji" && <><h3>이모티콘</h3><div className="emoji-grid">{["✈️","🌏","📸","🌅","☕","✨","💛","🌊","😎","🥰","👏","🎉"].map(emoji => <button key={emoji} onClick={() => {setCopy(value => `${value}${emoji}`);setPanel(null);}}>{emoji}</button>)}</div></>}
+            {panel === "mention" && <><h3>친구 태그</h3><label className="sheet-search"><Search/><input placeholder="이름, 전화번호 검색" autoFocus/></label><div className="place-list friends">{["춘식이","죠르디","라이언","어피치"].map((friend,index) => <button key={friend} onClick={() => {setEditorText(`${editorRef.current?.textContent ?? copy} @${friend}`);setPanel(null);}}><Avatar kind={index === 2 ? "lion" : "crew"}/><div><b>{friend}</b><small>친구</small></div><i><Plus/></i></button>)}</div></>}
+            {panel === "emoji" && <><h3>이모티콘</h3><div className="emoji-grid">{["✈️","🌏","📸","🌅","☕","✨","💛","🌊","😎","🥰","👏","🎉"].map(emoji => <button key={emoji} onClick={() => {setEditorText(`${editorRef.current?.textContent ?? copy}${emoji}`);setPanel(null);}}>{emoji}</button>)}</div></>}
             {panel === "ai" && <><div className="ai-head"><span><Sparkles/></span><div><h3>AI 추천 주제</h3><p>작성한 내용을 바탕으로 추천했어요. 하나만 선택할 수 있어요.</p></div></div><div className="ai-topics">{topicSuggestions.map(topic => <button key={topic} className={selectedTopic === topic ? "selected" : ""} onClick={() => { setSelectedTopic(topic); setTopicDraft(topic); }}>#{topic}<span>{selectedTopic === topic ? "✓" : "+"}</span></button>)}</div><button className="sheet-primary" onClick={() => setPanel(null)}>추천 주제 적용</button></>}
             {panel === "publish" && <><h3>발행 옵션</h3><p className="sheet-lead">콘텐츠를 누구에게 보여줄지 선택해주세요.</p><div className="publish-options"><div><b>공개 여부</b><span><button className="active">전체</button><button>팔로워</button></span></div><div><b>댓글 작성 대상</b><span><button className="active">전체</button><button>팔로워</button></span></div><label><span><b>리포스트 및 인용 허용</b><small>다른 사람이 콘텐츠를 공유할 수 있어요</small></span><input type="checkbox" defaultChecked/></label><label><span><b>AI 관련 표시</b><small>추천 기능을 사용한 콘텐츠로 표시해요</small></span><input type="checkbox" defaultChecked/></label></div><button className="sheet-primary publish-now" onClick={() => setPanel("success")}>피드에 올리기</button></>}
             {panel === "success" && <div className="success-panel"><span>✓</span><small>PUBLISHED</small><h3>피드에 올렸어요!</h3><p>작성한 콘텐츠가 카카오톡 3탭에<br/>새로운 이야기로 추가됐습니다.</p><button onClick={() => {setPublished(true);setPanel(null);setView("feed");flash("콘텐츠가 발행됐어요");}}>피드에서 보기</button></div>}
