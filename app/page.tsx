@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BarChart3, BatteryMedium, Bookmark, ChevronRight, Globe2, Heart, ImageIcon,
-  Link2, MapPin, MessageCircle, MessagesSquare, Mic, MoreHorizontal, Music2,
+  Link2, MapPin, MessageCircle, MessageSquareQuote, Mic, MoreHorizontal, Music2,
   Check, Pencil, Plus, Repeat2, Search, Settings, Share2, ShoppingBag, Signal,
   SlidersHorizontal, Smile, Sparkles, SquareCheckBig, UserPlus,
   UserRound, Video, Wifi, X,
 } from "lucide-react";
 
 type View = "feed" | "composer";
-type Panel = "photo" | "location" | "link" | "poll" | "mention" | "emoji" | "ai" | "publish" | "success" | null;
+type Panel = "photo" | "location" | "link" | "poll" | "quote" | "emoji" | "ai" | "publish" | "success" | null;
 
 const photos = [
   "https://images.unsplash.com/photo-1590141187901-91517156b553?auto=format&fit=crop&w=900&q=85",
@@ -19,6 +19,11 @@ const photos = [
   "https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&w=900&q=85",
   "https://images.unsplash.com/photo-1544986581-efac024faf62?auto=format&fit=crop&w=900&q=85",
   "https://images.unsplash.com/photo-1524293581917-878a6d017c71?auto=format&fit=crop&w=900&q=85",
+];
+
+const quotePhotos = [
+  "https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=700&q=85",
+  "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=700&q=85",
 ];
 
 const keyboardRows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
@@ -35,6 +40,15 @@ function ActionRow({ textPost = false }: { textPost?: boolean }) {
   return <div className="action-row"><button aria-label="댓글"><MessageCircle/></button><button aria-label="리포스트"><Repeat2/><small>{textPost ? "15" : "8"}</small></button><button aria-label="좋아요"><Heart/><small>{textPost ? "649" : "215"}</small></button><button aria-label="조회수"><BarChart3/><small>{textPost ? "3.1만" : "4.2천"}</small></button><span/><button aria-label="저장"><Bookmark/></button><button aria-label="공유"><Share2/></button></div>;
 }
 
+function QuotedPostCard({ removable = false, onRemove }: { removable?: boolean; onRemove?: () => void }) {
+  return <aside className="quoted-post-card" aria-label="인용한 게시물">
+    {removable && <button className="remove-quote" aria-label="인용 삭제" onClick={onRemove}><X/></button>}
+    <div className="quoted-author"><span>서</span><div><b>서승자</b><small>30분 전</small></div></div>
+    <p>시원한 빙수의 계절입니다!!<br/>직접 발품팔아온 서숭자 단독 할인 이벤트 가져왔어요🍧<br/>할인코드는 댓글에서 확인해주세요🙏</p>
+    <div className="quoted-images">{quotePhotos.map((photo,index) => <img key={photo} src={photo} alt={`빙수 사진 ${index + 1}`}/>)}</div>
+  </aside>;
+}
+
 export default function Home() {
   const [view, setView] = useState<View>("feed");
   const [panel, setPanel] = useState<Panel>(null);
@@ -43,6 +57,8 @@ export default function Home() {
   const [location, setLocation] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [poll, setPoll] = useState(false);
+  const [quotedPost, setQuotedPost] = useState(false);
+  const [quoteTab, setQuoteTab] = useState<"liked" | "saved" | "mine">("liked");
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [editingTopic, setEditingTopic] = useState(false);
   const [topicDraft, setTopicDraft] = useState("");
@@ -97,6 +113,8 @@ export default function Home() {
     setLocation(null);
     setLink(null);
     setPoll(false);
+    setQuotedPost(false);
+    setQuoteTab("liked");
     setSpoiler(false);
     setSelectedTopic(null);
     setEditingTopic(false);
@@ -158,6 +176,7 @@ export default function Home() {
               {location && <div className="post-location"><MapPin/> {location}</div>}
               {link && <div className="post-link"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>{link}</small></div></div>}
               {poll && <div className="post-poll"><b>다음 영화 후기 주제는?</b><button>오디세이 세계관</button><button>고대 신화 속 영웅</button></div>}
+              {quotedPost && <QuotedPostCard/>}
               {selectedTopic && <div className="tag-line"><span>#{selectedTopic}</span></div>}
               <ActionRow/>
             </article>}
@@ -185,7 +204,7 @@ export default function Home() {
                 <b>춘식크루</b>
                 <div
                   ref={editorRef}
-                  className="text-editor"
+                  className={`text-editor ${quotedPost ? "with-quote" : ""}`}
                   role="textbox"
                   aria-label="게시글 내용"
                   aria-multiline="true"
@@ -200,6 +219,7 @@ export default function Home() {
                   onBlur={() => window.setTimeout(() => setShowSelectionMenu(false), 160)}
                 />
                 {showSelectionMenu && <div className="selection-tools" style={{ left: selectionMenuPosition.left, top: selectionMenuPosition.top }}><button onMouseDown={event => event.preventDefault()} onClick={() => flash("내용을 오려냈어요")}>오려두기</button><button onMouseDown={event => event.preventDefault()} onClick={() => navigator.clipboard?.writeText(window.getSelection()?.toString() || copy)}>복사하기</button><button onMouseDown={event => event.preventDefault()} onClick={() => flash("클립보드 내용을 붙여넣었어요")}>붙여넣기</button><button onMouseDown={event => event.preventDefault()} className={spoiler ? "active" : ""} onClick={() => setSpoiler(!spoiler)}>스포방지로 표시</button><button><ChevronRight/></button></div>}
+                {quotedPost && <QuotedPostCard removable onRemove={() => setQuotedPost(false)}/>}
                 {selectedPhoto && <div className="editor-photo"><img src={selectedPhoto} alt="첨부한 사진"/><button onClick={() => setSelectedPhoto(null)}>×</button></div>}
                 {location && <div className="editor-attachment"><span>⌖</span><div><small>위치</small><b>{location}</b></div><button onClick={() => setLocation(null)}>×</button></div>}
                 {link && <div className="editor-attachment"><span>↗</span><div><small>링크</small><b>{link}</b></div><button onClick={() => setLink(null)}>×</button></div>}
@@ -221,7 +241,7 @@ export default function Home() {
               <button aria-label="위치 추가" onClick={() => setPanel("location")}><MapPin/></button>
               <button aria-label="링크 추가" onClick={() => setPanel("link")}><Link2/></button>
               <button aria-label="투표 추가" onClick={() => setPanel("poll")}><SquareCheckBig/></button>
-              <button aria-label="친구 멘션" onClick={() => setPanel("mention")}><MessagesSquare/></button>
+              <button className="quote-tool" aria-label="게시물 인용" onClick={() => setPanel("quote")}><MessageSquareQuote/></button>
               <button aria-label="이모티콘" onClick={() => setPanel("emoji")}><Smile/></button>
               <i/>
               <button className="ai-button" aria-label="AI 추천" onClick={() => setPanel("ai")}><Sparkles/><b>AI</b></button>
@@ -235,14 +255,31 @@ export default function Home() {
           </div>
         </div>}
 
-        {panel && <div className={`phone-overlay ${panel === "success" ? "solid" : ""}`} onMouseDown={() => panel !== "success" && setPanel(null)}>
+        {panel === "quote" && <div className="phone-overlay solid quote-overlay">
+          <section className="quote-picker" role="dialog" aria-modal="true" aria-label="인용할 게시물 선택">
+            <StatusBar/>
+            <header><button onClick={() => setPanel(null)}>취소</button><b>인용할 게시물을 선택하세요</b><span/></header>
+            <nav className="quote-tabs" aria-label="인용 게시물 분류">
+              <button className={quoteTab === "liked" ? "active" : ""} onClick={() => setQuoteTab("liked")}><Heart/>좋아요</button>
+              <button className={quoteTab === "saved" ? "active" : ""} onClick={() => setQuoteTab("saved")}><Bookmark/>저장</button>
+              <button className={quoteTab === "mine" ? "active" : ""} onClick={() => setQuoteTab("mine")}>내 게시물</button>
+            </nav>
+            <button className="quote-source-card" onClick={() => { setQuotedPost(true); setPanel(null); flash("인용을 추가했어요"); requestAnimationFrame(() => editorRef.current?.focus()); }}>
+              <div className="quote-source-author"><span>서</span><div><b>{quoteTab === "mine" ? "춘식크루" : "서승자"}</b><small>{quoteTab === "mine" ? "방금 전" : "30분 전"}</small></div></div>
+              <p>시원한 빙수의 계절입니다!!<br/>직접 발품팔아온 서숭자 단독 할인 이벤트 가져왔어요🍧<br/>할인코드는 댓글에서 확인해주세요🙏</p>
+              <div className="quote-source-images">{quotePhotos.map((photo,index) => <img key={photo} src={photo} alt={`인용할 빙수 사진 ${index + 1}`}/>)}</div>
+              <div className="quote-source-meta"><span>❤️ 333</span><span>🥰 888</span><span>😮 1K</span><span>+222</span><i/><Share2/><Bookmark/></div>
+            </button>
+          </section>
+        </div>}
+
+        {panel && panel !== "quote" && <div className={`phone-overlay ${panel === "success" ? "solid" : ""}`} onMouseDown={() => panel !== "success" && setPanel(null)}>
           <section className={`mobile-sheet panel-${panel}`} role="dialog" aria-modal="true" aria-label="추가 설정" onMouseDown={event => event.stopPropagation()}>
             {panel !== "success" && <><div className="sheet-handle"/><button className="sheet-close" aria-label="닫기" onClick={() => setPanel(null)}><X/></button></>}
             {panel === "photo" && <><h3>사진/동영상</h3><div className="sheet-tabs"><button className="active">최근 항목</button><button>즐겨찾기</button></div><div className="photo-grid">{photos.map((photo,index) => <button key={photo} onClick={() => {setSelectedPhoto(photo);setPanel(null);}}><img src={photo} alt={`여행 사진 ${index+1}`}/><span>{index+1}</span></button>)}</div></>}
             {panel === "location" && <><h3>위치</h3><label className="sheet-search"><Search/><input placeholder="장소 검색" autoFocus/></label><div className="place-list">{["Sydney Opera House","판교역","Darling Harbour","The Rocks, Sydney"].map(place => <button key={place} onClick={() => {setLocation(place);setPanel(null);}}><span><MapPin/></span><div><b>{place}</b><small>추천 위치</small></div><i><Plus/></i></button>)}</div></>}
             {panel === "link" && <><h3>링크</h3><label className="sheet-input">URL 입력<input defaultValue="https://www.sydney.com/" autoFocus/></label><div className="link-preview"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>sydney.com</small></div></div><button className="sheet-primary" onClick={() => {setLink("https://www.sydney.com/");setPanel(null);}}>링크 추가</button></>}
             {panel === "poll" && <><h3>투표</h3><label className="sheet-input">투표 제목<input defaultValue="다음 영화 후기 주제는?"/></label><label className="sheet-input">선택지 1<input defaultValue="오디세이 세계관"/></label><label className="sheet-input">선택지 2<input defaultValue="고대 신화 속 영웅"/></label><button className="sheet-primary" onClick={() => {setPoll(true);setPanel(null);}}>투표 만들기</button></>}
-            {panel === "mention" && <><h3>친구 태그</h3><label className="sheet-search"><Search/><input placeholder="이름, 전화번호 검색" autoFocus/></label><div className="place-list friends">{["춘식이","죠르디","라이언","어피치"].map((friend,index) => <button key={friend} onClick={() => {setEditorText(`${editorRef.current?.textContent ?? copy} @${friend}`);setPanel(null);}}><Avatar kind={index === 2 ? "lion" : "crew"}/><div><b>{friend}</b><small>친구</small></div><i><Plus/></i></button>)}</div></>}
             {panel === "emoji" && <><h3>이모티콘</h3><div className="emoji-grid">{["✈️","🌏","📸","🌅","☕","✨","💛","🌊","😎","🥰","👏","🎉"].map(emoji => <button key={emoji} onClick={() => {setEditorText(`${editorRef.current?.textContent ?? copy}${emoji}`);setPanel(null);}}>{emoji}</button>)}</div></>}
             {panel === "ai" && <><div className="ai-head"><span><Sparkles/></span><div><h3>AI 추천 주제</h3><p>작성한 내용을 바탕으로 추천했어요. 하나만 선택할 수 있어요.</p></div></div><div className="ai-topics">{topicSuggestions.map(topic => <button key={topic} className={selectedTopic === topic ? "selected" : ""} onClick={() => { setSelectedTopic(topic); setTopicDraft(topic); }}>#{topic}<span>{selectedTopic === topic ? "✓" : "+"}</span></button>)}</div><button className="sheet-primary" onClick={() => setPanel(null)}>추천 주제 적용</button></>}
             {panel === "publish" && <><h3>발행 옵션</h3><p className="sheet-lead">콘텐츠를 누구에게 보여줄지 선택해주세요.</p><div className="publish-options"><div><b>공개 여부</b><span><button className="active">전체</button><button>팔로워</button></span></div><div><b>댓글 작성 대상</b><span><button className="active">전체</button><button>팔로워</button></span></div><label><span><b>리포스트 및 인용 허용</b><small>다른 사람이 콘텐츠를 공유할 수 있어요</small></span><input type="checkbox" defaultChecked/></label><label><span><b>AI 관련 표시</b><small>추천 기능을 사용한 콘텐츠로 표시해요</small></span><input type="checkbox" defaultChecked/></label></div><button className="sheet-primary publish-now" onClick={() => setPanel("success")}>피드에 올리기</button></>}
