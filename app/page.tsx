@@ -103,6 +103,16 @@ const ghostAutoMessages = [
   { avatar: "🔥", text: "오늘은 진짜 해낸다" },
   { avatar: "☕", text: "따뜻한 커피 한 잔 필요해" },
 ];
+const plazaCharacters = [
+  { name: "라이언러버", label: "라이언" },
+  { name: "복심이팬", label: "어피치" },
+  { name: "무지행복", label: "무지" },
+  { name: "콘이최고", label: "콘" },
+  { name: "튜브퇴근러", label: "튜브" },
+  { name: "네오오늘", label: "네오" },
+  { name: "프로도산책", label: "프로도" },
+  { name: "제이지뮤직", label: "제이지" },
+];
 
 function StickerSprite({ index, className = "" }: { index: number; className?: string }) {
   const column = index % 6;
@@ -1356,12 +1366,15 @@ export default function Home() {
               <div className="ghost-plaza-world" aria-hidden="true">
                 <i className="plaza-bench bench-a"/><i className="plaza-bench bench-b"/><i className="plaza-bench bench-c"/>
                 <span className="plaza-tree tree-a">🌳</span><span className="plaza-tree tree-b">🌲</span><span className="plaza-tree tree-c">🌳</span>
-                {['주황 곰','갈색 곰','노란 강아지','흰 토끼','흰 오리','복숭아','남색 고양이','초록 공룡'].map((avatar,index) => <span className={`plaza-npc npc-${index + 1}`} key={avatar} aria-label={avatar}/>)}
+                {plazaCharacters.map((character,index) => {
+                  const mood = ghostMoods[index % ghostMoods.length];
+                  return <div className={`plaza-walker walker-${index + 1}`} key={character.label} aria-label={`${character.label} 캐릭터`}>
+                    {index < 5 && <span className="plaza-character-message" key={mood.id}><b>{character.name}:</b><span>{mood.text}</span></span>}
+                    <span className={`plaza-character sprite-${index + 1}`} aria-hidden="true"/>
+                  </div>;
+                })}
               </div>
               <header><h3>카톡 광장</h3><span><i/>10분 후 사라져요</span></header>
-              <div className="ghost-bubbles">
-                {ghostMoods.map((mood,index) => <div className={`ghost-bubble level-${index} ${mood.id % 2 ? "side-left" : "side-right"}`} key={mood.id}><span>{mood.avatar}</span><b>{mood.text}</b></div>)}
-              </div>
               <div className="ghost-mood-compose"><label><input value={ghostMoodDraft} onChange={event => setGhostMoodDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter") publishGhostMood(); }} placeholder="지금 감정을 우다다 남겨보세요"/><button type="button" aria-label="기분 이모티콘 추가" onClick={() => setGhostMoodDraft(current => `${current}🙂`)}><Smile/></button></label><button aria-label="광장에 기분 남기기" disabled={!ghostMoodDraft.trim()} onClick={publishGhostMood}>↑</button></div>
             </section>
 
