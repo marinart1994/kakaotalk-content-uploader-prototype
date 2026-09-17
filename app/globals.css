@@ -96,6 +96,13 @@ button { cursor:pointer; }
 .published-series { display:grid; gap:10px; margin:13px 0 7px; }
 .published-series p { display:grid; grid-template-columns:19px 1fr; gap:7px; margin:0; font-size:14px; line-height:1.56; letter-spacing:-.25px; white-space:pre-line; }
 .published-series p>b { width:19px; height:19px; display:grid; place-items:center; border-radius:50%; background:#1d1f22; color:#fff; font-size:8px; }
+.delete-post-action { width:100%; min-height:64px; display:flex; align-items:center; gap:11px; border:0; border-radius:13px; padding:11px 12px; background:#fff4f4; color:#e24b4b; text-align:left; }
+.delete-post-action>span { width:38px; height:38px; flex:0 0 38px; display:grid; place-items:center; border-radius:11px; background:#ffe3e3; }
+.delete-post-action>span svg { width:18px; height:18px; }
+.delete-post-action>div { flex:1; display:grid; gap:3px; }
+.delete-post-action b { font-size:12px; }
+.delete-post-action small { color:#a66c6c; font-size:8px; }
+.delete-post-action>svg { width:16px; height:16px; }
 .post-media-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; margin-top:13px; overflow:hidden; border-radius:13px; }
 .post-media-grid.count-1 { grid-template-columns:1fr; }
 .post-media-grid .post-image { height:180px; margin:0; border-radius:0; }

@@ -6,14 +6,14 @@ import {
   Link2, MapPin, MessageCircle, MessageSquareQuote, Mic, MoreHorizontal, Music2,
   Check, Pencil, Plus, Repeat2, Search, Settings, Share2, ShoppingBag, Signal,
   SlidersHorizontal, Smile, Sparkles, SquareCheckBig, UserPlus,
-  UserRound, Video, Wifi, X,
+  Trash2, UserRound, Video, Wifi, X,
 } from "lucide-react";
 
 type View = "feed" | "composer";
 type MediaType = "photo" | "video";
 type MediaItem = { id: number; src: string; type: MediaType };
 type SeriesItem = { id: number; text: string };
-type Panel = "photo" | "photo-editor" | "video-editor" | "location" | "link" | "poll" | "quote" | "emoji" | "ai" | "publish" | "success" | null;
+type Panel = "photo" | "photo-editor" | "video-editor" | "location" | "link" | "poll" | "quote" | "emoji" | "ai" | "publish" | "post-menu" | "success" | null;
 
 const photos = [
   "https://images.unsplash.com/photo-1590141187901-91517156b553?auto=format&fit=crop&w=900&q=85",
@@ -280,7 +280,7 @@ export default function Home() {
           <div className="hairline"/>
           <div className="mobile-feed-scroll">
             {published && <article className="k-post fresh-post">
-              <div className="post-head"><Avatar/><span><b>춘식크루</b><small>방금 전 · 판교</small></span><button aria-label="더보기"><MoreHorizontal/></button></div>
+              <div className="post-head"><Avatar/><span><b>춘식크루</b><small>방금 전 · 판교</small></span><button aria-label="내 게시물 더보기" onClick={() => setPanel("post-menu")}><MoreHorizontal/></button></div>
               {combinedCopy && <div className={`published-series ${spoiler ? "spoiler-copy" : ""}`}>{[copy, ...seriesItems.map(item => item.text)].filter(Boolean).map((text,index) => <p key={`${index}-${text}`}><b>{index + 1}</b><span>{text}</span></p>)}</div>}
               {selectedMedia.length > 0 && <div className={`post-media-grid count-${Math.min(selectedMedia.length, 4)}`}>{selectedMedia.map(media => <div className="post-media" key={media.id}><img className="post-image" src={media.src} alt={media.type === "video" ? "새로 올린 영상" : "새로 올린 사진"}/>{media.type === "video" && <span><Video/> 영상</span>}</div>)}</div>}
               {location && <div className="post-location"><MapPin/> {location}</div>}
@@ -459,6 +459,7 @@ export default function Home() {
             {panel === "emoji" && <><h3>이모티콘</h3><div className="emoji-grid">{["✈️","🌏","📸","🌅","☕","✨","💛","🌊","😎","🥰","👏","🎉"].map(emoji => <button key={emoji} onClick={() => {setEditorText(`${editorRef.current?.textContent ?? activeCopy}${emoji}`);setPanel(null);}}>{emoji}</button>)}</div></>}
             {panel === "ai" && <><div className="ai-head"><span><Sparkles/></span><div><h3>AI 추천 주제</h3><p>작성한 내용을 바탕으로 추천했어요. 하나만 선택할 수 있어요.</p></div></div><div className="ai-topics">{topicSuggestions.map(topic => <button key={topic} className={selectedTopic === topic ? "selected" : ""} onClick={() => { setSelectedTopic(topic); setTopicDraft(topic); }}>#{topic}<span>{selectedTopic === topic ? "✓" : "+"}</span></button>)}</div><button className="sheet-primary" onClick={() => setPanel(null)}>추천 주제 적용</button></>}
             {panel === "publish" && <><h3>발행 옵션</h3><p className="sheet-lead">콘텐츠를 누구에게 보여줄지 선택해주세요.</p><div className="publish-options"><div><b>공개 여부</b><span><button className="active">전체</button><button>팔로워</button></span></div><div><b>댓글 작성 대상</b><span><button className="active">전체</button><button>팔로워</button></span></div><label><span><b>리포스트 및 인용 허용</b><small>다른 사람이 콘텐츠를 공유할 수 있어요</small></span><input type="checkbox" defaultChecked/></label><label><span><b>AI 관련 표시</b><small>추천 기능을 사용한 콘텐츠로 표시해요</small></span><input type="checkbox" defaultChecked/></label></div><button className="sheet-primary publish-now" onClick={() => setPanel("success")}>피드에 올리기</button></>}
+            {panel === "post-menu" && <><h3>게시물 관리</h3><button className="delete-post-action" onClick={() => { setPublished(false); setPanel(null); flash("게시물을 삭제했어요"); }}><span><Trash2/></span><div><b>삭제하기</b><small>이 게시물을 피드에서 삭제합니다</small></div><ChevronRight/></button></>}
             {panel === "success" && <div className="success-panel"><span>✓</span><small>PUBLISHED</small><h3>피드에 올렸어요!</h3><p>작성한 콘텐츠가 카카오톡 3탭에<br/>새로운 이야기로 추가됐습니다.</p><button onClick={() => {setPublished(true);setPanel(null);setView("feed");flash("콘텐츠가 발행됐어요");}}>피드에서 보기</button></div>}
           </section>
         </div>}
