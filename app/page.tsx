@@ -675,7 +675,7 @@ export default function Home() {
           <div className="hairline"/>
           <div className="mobile-feed-scroll">
             {published && <article className="k-post fresh-post">
-              <div className="post-head"><Avatar/><span><b>춘식크루</b><small>방금 전 · 판교</small></span><button aria-label="내 게시물 더보기" onClick={() => setPanel("post-menu")}><MoreHorizontal/></button></div>
+              <div className="post-head"><Avatar/><span><b>춘식크루{selectedTopic && <em className="post-topic-badge">{selectedTopic}<ChevronRight/></em>}</b><small>방금 전 · 판교</small></span><button aria-label="내 게시물 더보기" onClick={() => setPanel("post-menu")}><MoreHorizontal/></button></div>
               {allSeriesContent.some(item => item.text.trim() || item.media.length) && <div className="published-series">{allSeriesContent.map((item,index) => (item.text.trim() || item.media.length) && <div className="published-series-item" key={item.id}>
                 <b>{index + 1}</b>
                 <div>{item.text && <p><RichTextContent value={item.text}/></p>}{item.media.length > 0 && <div className={`post-media-grid count-${Math.min(item.media.length, 4)}`}>{item.media.map(media => <div className="post-media" key={media.id}><img className="post-image" src={media.src} alt={media.type === "video" ? "새로 올린 영상" : "새로 올린 사진"}/>{media.type === "video" && <span><Video/> 영상</span>}</div>)}</div>}</div>
@@ -685,7 +685,6 @@ export default function Home() {
               {link && <div className="post-link"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>{link}</small></div></div>}
               {poll && <div className="post-poll"><b>다음 영화 후기 주제는?</b><button>오디세이 세계관</button><button>고대 신화 속 영웅</button></div>}
               {quotedPost && <QuotedPostCard/>}
-              {selectedTopic && <div className="tag-line"><span>#{selectedTopic}</span></div>}
               <ActionRow/>
             </article>}
             <article className="k-post">

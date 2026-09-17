@@ -27,6 +27,7 @@ button { cursor:pointer; }
 .status-icons { display:flex; align-items:center; gap:5px; letter-spacing:0; }.status-icons svg { width:17px; height:17px; stroke-width:2.5; }.status-icons svg:last-child { width:21px; }
 .now-header svg { width:25px; height:25px; stroke-width:2.15; }.now-header>div { gap:18px; }.interest-row>svg { width:18px; height:18px; color:#9da1a6; }
 .post-head button svg { width:17px; height:17px; stroke-width:2; }.post-head b em { display:inline-flex; align-items:center; gap:2px; }.post-head b em svg { width:10px; height:10px; fill:#aaaeb2; stroke:#aaaeb2; }
+.post-head b .post-topic-badge { margin-left:6px; padding:2px 4px 2px 6px; border-radius:3px; background:#c6efad; color:#39751f; font-size:8px; line-height:1.25; font-weight:700; letter-spacing:-.3px; vertical-align:2px; }.post-head b .post-topic-badge svg { width:8px; height:8px; fill:none; stroke:#39751f; stroke-width:2.5; }
 .action-row button svg { width:19px; height:19px; stroke-width:1.8; }.action-row { gap:15px; }.post-location { display:inline-flex; align-items:center; gap:3px; }.post-location svg { width:12px; height:12px; }.post-link>span svg { width:18px; height:18px; }
 .media-badges svg { width:19px; height:19px; stroke-width:2; }.floating-create { display:grid; place-items:center; }.floating-create svg { width:27px; height:27px; stroke-width:1.8; }
 .bottom-nav button>svg,.bottom-nav button>span svg { width:24px; height:24px; stroke-width:2; }.bottom-nav button { display:grid; place-items:center; }.bottom-nav button.active span { display:grid; }
