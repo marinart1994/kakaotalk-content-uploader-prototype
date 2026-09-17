@@ -123,6 +123,7 @@ button { cursor:pointer; }
 .post-sticker { width:145px; height:145px; margin:8px 0 4px; }
 .post-sticker .sticker-sprite { width:100%; height:100%; }
 .mobile-sheet.panel-emoji { height:86%; max-height:86%; overflow:hidden; padding:0; }
+.mobile-sheet.panel-emoji.emoji-tab-mini { height:62%; max-height:62%; }
 .emoticon-picker { height:100%; display:flex; flex-direction:column; background:#fff; }
 .emoticon-handle { width:43px; height:4px; flex:0 0 4px; margin:11px auto 10px; border-radius:4px; background:#b6b9bd; }
 .emoticon-main-tabs { height:50px; flex:0 0 50px; display:grid; grid-template-columns:repeat(4,1fr) 44px; align-items:center; gap:2px; margin:0 15px; padding-left:4px; border-radius:25px; background:#f0f1f2; }
@@ -151,7 +152,12 @@ button { cursor:pointer; }
 .sticker-grid>button:active { background:#f3f4f5; }
 .sticker-grid .sticker-sprite { width:100%; height:100%; }
 .mini-emoticon-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:7px 4px; padding:4px 0 15px; }
-.mini-emoticon-grid button { aspect-ratio:1; border:0; border-radius:12px; background:#fff5fa; color:#ff4ca1; font-size:24px; font-weight:900; }
+.mini-emoticon-grid button { min-width:0; aspect-ratio:1; display:grid; place-items:center; overflow:hidden; border:0; border-radius:12px; padding:0; background:#fff; }
+.mini-emoticon-grid button:active { background:#fff0f7; transform:scale(.94); }
+.mini-emoticon-sprite { display:inline-block; width:100%; height:100%; overflow:hidden; background-repeat:no-repeat; background-size:600% 300%; background-color:#fff; }
+.inline-mini-emoticon { width:28px; height:28px; margin:0 1px; vertical-align:-8px; border-radius:4px; }
+.published-mini-emoticon { width:24px; height:24px; margin:0 1px; vertical-align:-7px; border-radius:4px; }
+.mini-emoticon-hint { margin:0 0 8px; color:#92979c; font-size:9px; text-align:center; }
 .friends-more { height:42px; display:flex; align-items:center; justify-content:center; gap:6px; margin:8px auto 24px; padding:0 18px; border:1px solid #e3e5e7; border-radius:22px; background:#fff; color:#34383c; font-size:11px; font-weight:800; }
 .friends-more svg { width:15px; height:15px; }
 .discover-emoticons { display:grid; grid-template-columns:repeat(2,1fr); gap:9px; }

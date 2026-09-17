@@ -57,18 +57,85 @@ const quotePhotos = [
 
 const keyboardRows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 const koreanKeyboardRows = ["ㅂㅈㄷㄱㅅㅛㅕㅑㅐㅔ", "ㅁㄴㅇㄹㅎㅗㅓㅏㅣ", "ㅋㅌㅊㅍㅠㅜㅡ"];
+const MINI_TOKEN_START = 0xe000;
 const initialLightPosts: LightPost[] = [
   { id: 1, author: "소담한 오후", time: "방금", category: "고민", text: "요즘 별일 아닌데도 괜히 지칠 때가 있어요.\n다들 이럴 땐 어떻게 쉬나요?", likes: 12, comments: 4, avatar: "🐈" },
   { id: 2, author: "밤산책", time: "3분 전", category: "질문", text: "오늘 하루 중 가장 좋았던 순간은 언제였나요?", likes: 8, comments: 6, avatar: "🌙" },
   { id: 3, author: "초록컵", time: "10분 전", category: "일상", text: "기분 전환이 필요할 때 찾는 곳이 있나요?", likes: 5, comments: 3, avatar: "🍵" },
 ];
 const stickerIndexes = Array.from({ length: 30 }, (_, index) => index);
-const miniEmoticons = ["♡", "♥", "✿", "🎀", "✦", "☕", "♪", "→", "🎂", "!!", "OK", "BYE", "☀", "☁", "★", "☺", "☂", "♬"];
+const miniEmoticons = Array.from({ length: 17 }, (_, index) => index);
 
 function StickerSprite({ index, className = "" }: { index: number; className?: string }) {
   const column = index % 6;
   const row = Math.floor(index / 6);
   return <span className={`sticker-sprite ${className}`} style={{ backgroundImage: "url(emoticon-cat-sprite.png)", backgroundPosition: `${column * 20}% ${row * 25}%` }}/>
+}
+
+function MiniEmoticonSprite({ index, className = "" }: { index: number; className?: string }) {
+  const column = index % 6;
+  const row = Math.floor(index / 6);
+  return <span className={`mini-emoticon-sprite ${className}`} data-mini={index} contentEditable={false} style={{ backgroundImage: "url(mini-emoticon-sprite.png)", backgroundPosition: `${column * 20}% ${row * 50}%` }}/>
+}
+
+const miniToken = (index: number) => String.fromCharCode(MINI_TOKEN_START + index);
+const miniIndex = (character: string) => {
+  const index = character.charCodeAt(0) - MINI_TOKEN_START;
+  return index >= 0 && index < miniEmoticons.length ? index : -1;
+};
+
+function createInlineMini(index: number) {
+  const span = document.createElement("span");
+  span.className = "mini-emoticon-sprite inline-mini-emoticon";
+  span.dataset.mini = String(index);
+  span.contentEditable = "false";
+  span.setAttribute("role", "img");
+  span.setAttribute("aria-label", `미니 이모티콘 ${index + 1}`);
+  span.style.backgroundImage = "url(mini-emoticon-sprite.png)";
+  span.style.backgroundPosition = `${(index % 6) * 20}% ${Math.floor(index / 6) * 50}%`;
+  return span;
+}
+
+function renderEditorValue(editor: HTMLDivElement, value: string) {
+  editor.replaceChildren();
+  let textBuffer = "";
+  const flushText = () => {
+    if (!textBuffer) return;
+    editor.append(document.createTextNode(textBuffer));
+    textBuffer = "";
+  };
+  for (const character of Array.from(value)) {
+    const index = miniIndex(character);
+    if (index >= 0) {
+      flushText();
+      editor.append(createInlineMini(index));
+    } else if (character === "\n") {
+      flushText();
+      editor.append(document.createElement("br"));
+    } else {
+      textBuffer += character;
+    }
+  }
+  flushText();
+}
+
+function serializeEditor(editor: HTMLDivElement) {
+  const serializeNode = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
+    if (!(node instanceof HTMLElement)) return "";
+    if (node.dataset.mini !== undefined) return miniToken(Number(node.dataset.mini));
+    if (node.tagName === "BR") return "\n";
+    const contents = Array.from(node.childNodes).map(serializeNode).join("");
+    return node.tagName === "DIV" && node.previousSibling ? `\n${contents}` : contents;
+  };
+  return Array.from(editor.childNodes).map(serializeNode).join("");
+}
+
+function renderRichText(value: string) {
+  return Array.from(value).map((character, index) => {
+    const emoticonIndex = miniIndex(character);
+    return emoticonIndex >= 0 ? <MiniEmoticonSprite key={`mini-${index}`} index={emoticonIndex} className="published-mini-emoticon"/> : character;
+  });
 }
 
 function Avatar({ kind = "crew" }: { kind?: "crew" | "lion" | "leaf" }) {
@@ -125,6 +192,7 @@ export default function Home() {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const editorBodyRef = useRef<HTMLDivElement | null>(null);
   const seriesEditorRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const savedEditorRangeRef = useRef<Range | null>(null);
   const nextSeriesId = useRef(1);
   const isComposingRef = useRef(false);
 
@@ -155,7 +223,7 @@ export default function Home() {
     else setSeriesItems(current => current.map(item => item.id === activeSeriesId ? { ...item, text: value } : item));
     const editor = editorRef.current;
     if (!editor) return;
-    editor.textContent = value;
+    renderEditorValue(editor, value);
     editor.focus();
     const range = document.createRange();
     range.selectNodeContents(editor);
@@ -165,8 +233,49 @@ export default function Home() {
     selection?.addRange(range);
   };
 
-  const addKey = (key: string) => setEditorText(`${editorRef.current?.textContent ?? activeCopy}${key}`);
-  const removeLastCharacter = () => setEditorText(Array.from(editorRef.current?.textContent ?? activeCopy).slice(0, -1).join(""));
+  const addKey = (key: string) => setEditorText(`${activeCopy}${key}`);
+  const removeLastCharacter = () => setEditorText(Array.from(activeCopy).slice(0, -1).join(""));
+
+  const rememberEditorCaret = () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const selection = window.getSelection();
+    if (selection?.rangeCount && editor.contains(selection.anchorNode)) {
+      savedEditorRangeRef.current = selection.getRangeAt(0).cloneRange();
+      return;
+    }
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    savedEditorRangeRef.current = range;
+  };
+
+  const openEmojiPicker = () => {
+    if (!savedEditorRangeRef.current) rememberEditorCaret();
+    setPanel("emoji");
+  };
+
+  const insertMiniEmoticon = (index: number) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const selection = window.getSelection();
+    const range = savedEditorRangeRef.current?.cloneRange() ?? document.createRange();
+    if (!savedEditorRangeRef.current || !editor.contains(range.commonAncestorContainer)) {
+      range.selectNodeContents(editor);
+      range.collapse(false);
+    }
+    const mini = createInlineMini(index);
+    range.deleteContents();
+    range.insertNode(mini);
+    range.setStartAfter(mini);
+    range.collapse(true);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    savedEditorRangeRef.current = range.cloneRange();
+    const value = serializeEditor(editor);
+    if (activeSeriesId === 0) setCopy(value);
+    else setSeriesItems(current => current.map(item => item.id === activeSeriesId ? { ...item, text: value } : item));
+  };
 
   const resetComposer = () => {
     setView("feed");
@@ -195,6 +304,7 @@ export default function Home() {
     setEditingTopic(false);
     setTopicDraft("");
     setShowSelectionMenu(false);
+    savedEditorRangeRef.current = null;
     setView("composer");
   };
 
@@ -366,7 +476,7 @@ export default function Home() {
               <div className="post-head"><Avatar/><span><b>춘식크루</b><small>방금 전 · 판교</small></span><button aria-label="내 게시물 더보기" onClick={() => setPanel("post-menu")}><MoreHorizontal/></button></div>
               {allSeriesContent.some(item => item.text.trim() || item.media.length) && <div className={`published-series ${spoiler ? "spoiler-copy" : ""}`}>{allSeriesContent.map((item,index) => (item.text.trim() || item.media.length) && <div className="published-series-item" key={item.id}>
                 <b>{index + 1}</b>
-                <div>{item.text && <p>{item.text}</p>}{item.media.length > 0 && <div className={`post-media-grid count-${Math.min(item.media.length, 4)}`}>{item.media.map(media => <div className="post-media" key={media.id}><img className="post-image" src={media.src} alt={media.type === "video" ? "새로 올린 영상" : "새로 올린 사진"}/>{media.type === "video" && <span><Video/> 영상</span>}</div>)}</div>}</div>
+                <div>{item.text && <p>{renderRichText(item.text)}</p>}{item.media.length > 0 && <div className={`post-media-grid count-${Math.min(item.media.length, 4)}`}>{item.media.map(media => <div className="post-media" key={media.id}><img className="post-image" src={media.src} alt={media.type === "video" ? "새로 올린 영상" : "새로 올린 사진"}/>{media.type === "video" && <span><Video/> 영상</span>}</div>)}</div>}</div>
               </div>)}</div>}
               {selectedSticker !== null && <div className="post-sticker"><StickerSprite index={selectedSticker}/></div>}
               {location && <div className="post-location"><MapPin/> {location}</div>}
@@ -407,8 +517,8 @@ export default function Home() {
                   contentEditable
                   suppressContentEditableWarning
                   onCompositionStart={() => { isComposingRef.current = true; }}
-                  onCompositionEnd={event => { isComposingRef.current = false; setCopy(event.currentTarget.textContent || ""); }}
-                  onInput={event => { if (!isComposingRef.current) setCopy(event.currentTarget.textContent || ""); setShowSelectionMenu(false); }}
+                  onCompositionEnd={event => { isComposingRef.current = false; setCopy(serializeEditor(event.currentTarget)); }}
+                  onInput={event => { if (!isComposingRef.current) setCopy(serializeEditor(event.currentTarget)); setShowSelectionMenu(false); }}
                   onFocus={event => { setActiveSeriesId(0); editorRef.current = event.currentTarget; editorBodyRef.current = event.currentTarget.parentElement as HTMLDivElement; }}
                   onMouseUp={handleEditorSelection}
                   onTouchEnd={handleEditorSelection}
@@ -453,8 +563,8 @@ export default function Home() {
                   contentEditable
                   suppressContentEditableWarning
                   onCompositionStart={() => { isComposingRef.current = true; }}
-                  onCompositionEnd={event => { isComposingRef.current = false; setSeriesItems(current => current.map(series => series.id === item.id ? { ...series, text: event.currentTarget.textContent || "" } : series)); }}
-                  onInput={event => { if (!isComposingRef.current) setSeriesItems(current => current.map(series => series.id === item.id ? { ...series, text: event.currentTarget.textContent || "" } : series)); setShowSelectionMenu(false); }}
+                  onCompositionEnd={event => { isComposingRef.current = false; setSeriesItems(current => current.map(series => series.id === item.id ? { ...series, text: serializeEditor(event.currentTarget) } : series)); }}
+                  onInput={event => { if (!isComposingRef.current) setSeriesItems(current => current.map(series => series.id === item.id ? { ...series, text: serializeEditor(event.currentTarget) } : series)); setShowSelectionMenu(false); }}
                   onFocus={event => { setActiveSeriesId(item.id); editorRef.current = event.currentTarget; editorBodyRef.current = event.currentTarget.parentElement as HTMLDivElement; }}
                   onMouseUp={handleEditorSelection}
                   onTouchEnd={handleEditorSelection}
@@ -485,14 +595,14 @@ export default function Home() {
               <button aria-label="링크 추가" disabled={activeSeriesId !== 0 || activeMedia.length > 0} onClick={() => setPanel("link")}><Link2/></button>
               <button aria-label="투표 추가" disabled={activeSeriesId !== 0 || activeMedia.length > 0} onClick={() => setPanel("poll")}><SquareCheckBig/></button>
               <button className="quote-tool" aria-label="게시물 인용" disabled={activeSeriesId !== 0 || activeMedia.length > 0} onClick={() => setPanel("quote")}><MessageSquareQuote/></button>
-              <button aria-label="이모티콘" onClick={() => setPanel("emoji")}><Smile/></button>
+              <button aria-label="이모티콘" onMouseDown={rememberEditorCaret} onClick={openEmojiPicker}><Smile/></button>
               <i/>
               <button className="ai-button" aria-label="AI 추천" onClick={() => setPanel("ai")}><Sparkles/><b>AI</b></button>
             </div>
             <div className="fake-keyboard">
               <div className="suggestions"><span>I</span><span>The</span><span>I’m</span></div>
               {keyboardRows.map((row, rowIndex) => <div className={`key-row row-${rowIndex}`} key={row}>{rowIndex === 2 && <button className="wide-key" onClick={() => addKey("⇧")}>⬆</button>}{[...row].map(key => <button key={key} onClick={() => addKey(key)}>{key}</button>)}{rowIndex === 2 && <button className="wide-key" onClick={removeLastCharacter}>⌫</button>}</div>)}
-              <div className="key-row utility-row"><button>123</button><button onClick={() => setPanel("emoji")}>☺</button><button className="space" onClick={() => addKey(" ")}>space <small>EN</small></button><button onClick={() => addKey("\n")}>↵</button></div>
+              <div className="key-row utility-row"><button>123</button><button onMouseDown={rememberEditorCaret} onClick={openEmojiPicker}>☺</button><button className="space" onClick={() => addKey(" ")}>space <small>EN</small></button><button onClick={() => addKey("\n")}>↵</button></div>
               <div className="keyboard-foot"><button aria-label="키보드 언어"><Globe2/></button><button aria-label="음성 입력"><Mic/></button></div>
             </div>
           </div>
@@ -550,7 +660,7 @@ export default function Home() {
         </div>}
 
         {panel && panel !== "quote" && panel !== "photo" && panel !== "photo-editor" && panel !== "video-editor" && <div className={`phone-overlay ${panel === "success" ? "solid" : ""}`} onMouseDown={() => panel !== "success" && setPanel(null)}>
-          <section className={`mobile-sheet panel-${panel}`} role="dialog" aria-modal="true" aria-label="추가 설정" onMouseDown={event => event.stopPropagation()}>
+          <section className={`mobile-sheet panel-${panel} ${panel === "emoji" ? `emoji-tab-${emojiTab}` : ""}`} role="dialog" aria-modal="true" aria-label="추가 설정" onMouseDown={event => event.stopPropagation()}>
             {panel !== "success" && panel !== "emoji" && <><div className="sheet-handle"/><button className="sheet-close" aria-label="닫기" onClick={() => setPanel(null)}><X/></button></>}
             {panel === "location" && <><h3>위치</h3><label className="sheet-search"><Search/><input placeholder="장소 검색" autoFocus/></label><div className="place-list">{["Sydney Opera House","판교역","Darling Harbour","The Rocks, Sydney"].map(place => <button key={place} onClick={() => {setLocation(place);setPanel(null);}}><span><MapPin/></span><div><b>{place}</b><small>추천 위치</small></div><i><Plus/></i></button>)}</div></>}
             {panel === "link" && <><h3>링크</h3><label className="sheet-input">URL 입력<input defaultValue="https://www.sydney.com/" autoFocus/></label><div className="link-preview"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>sydney.com</small></div></div><button className="sheet-primary" onClick={() => {setLink("https://www.sydney.com/");setPanel(null);}}>링크 추가</button></>}
@@ -571,7 +681,7 @@ export default function Home() {
               <div className="emoticon-content">
                 {emojiTab === "search" && <><label className="emoticon-search"><Search/><input placeholder="이모티콘 검색" autoFocus/></label><div className="emoticon-title"><b>최근 사용</b></div><div className="sticker-grid compact">{stickerIndexes.slice(0,12).map(index => <button key={index} aria-label={`이모티콘 ${index + 1} 사용`} onClick={() => { setSelectedSticker(index); setPanel(null); flash("이모티콘을 추가했어요"); }}><StickerSprite index={index}/></button>)}</div></>}
                 {emojiTab === "emoticon" && <><div className="emoticon-title"><b>몽글 회색 고양이</b><span>새 스티커 팩 ›</span></div><div className="sticker-grid">{stickerIndexes.map(index => <button key={index} aria-label={`고양이 이모티콘 ${index + 1} 사용`} onClick={() => { setSelectedSticker(index); setPanel(null); flash("이모티콘을 추가했어요"); }}><StickerSprite index={index}/></button>)}</div></>}
-                {emojiTab === "mini" && <><div className="emoticon-title"><b>핑크 미니 이모티콘</b><span>작게 표현해요 ›</span></div><div className="mini-emoticon-grid">{miniEmoticons.map(symbol => <button key={symbol} onClick={() => { setEditorText(`${editorRef.current?.textContent ?? activeCopy}${symbol}`); setPanel(null); }}>{symbol}</button>)}</div><button className="friends-more">🐥 카카오프렌즈 더보기 <ChevronRight/></button></>}
+                {emojiTab === "mini" && <><div className="emoticon-title"><b>핑크핑크 어피치</b><span>텍스트 옆에 자유롭게 붙여보세요 ›</span></div><div className="mini-emoticon-grid">{miniEmoticons.map(index => <button key={index} aria-label={`미니 이모티콘 ${index + 1} 삽입`} onClick={() => insertMiniEmoticon(index)}><MiniEmoticonSprite index={index}/></button>)}</div><p className="mini-emoticon-hint">선택창을 닫지 않고 여러 개를 연속으로 넣을 수 있어요.</p><button className="friends-more">🐥 카카오프렌즈 더보기 <ChevronRight/></button></>}
                 {emojiTab === "discover" && <><div className="emoticon-title"><b>추천 미니 이모티콘</b><span>취향을 발견해요 ›</span></div><div className="discover-emoticons">{[[0,4,8,12],[2,7,13,18],[5,11,17,23],[6,15,21,29]].map((group,index) => <button key={index} onClick={() => setEmojiTab("emoticon")}>{group.map(sticker => <StickerSprite index={sticker} key={sticker}/>)}</button>)}</div></>}
               </div>
             </div>}
