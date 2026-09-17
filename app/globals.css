@@ -272,6 +272,23 @@ button { cursor:pointer; }
 .light-post-head>button svg { width:18px; height:18px; }
 .light-post>p { margin:8px 0 9px 46px; white-space:pre-line; color:#24282b; font-size:12px; line-height:1.52; letter-spacing:-.2px; }
 .light-post-image { display:block; width:calc(100% - 46px); height:178px; margin:9px 0 10px 46px; border-radius:11px; object-fit:cover; }
+.light-post-location { width:max-content; max-width:calc(100% - 46px); display:flex; align-items:center; gap:4px; margin:8px 0 10px 46px; padding:6px 9px; border-radius:12px; background:#eef9ff; color:#338bbf; font-size:9px; }
+.light-post-location svg { width:12px; height:12px; }
+.light-post-link { display:grid; grid-template-columns:34px 1fr 15px; align-items:center; gap:8px; margin:8px 0 10px 46px; padding:8px; border:1px solid #e2e6e9; border-radius:10px; background:#fafbfc; }
+.light-post-link>span { width:34px; height:34px; display:grid; place-items:center; border-radius:8px; background:#edf7ff; color:#338ec6; }
+.light-post-link>span svg { width:16px; height:16px; }
+.light-post-link>div { min-width:0; display:grid; gap:2px; }
+.light-post-link b { font-size:9px; }
+.light-post-link small { overflow:hidden; color:#8b9299; font-size:7px; text-overflow:ellipsis; white-space:nowrap; }
+.light-post-link>svg { width:14px; height:14px; color:#9aa0a6; }
+.light-post-poll { display:grid; gap:5px; margin:8px 0 10px 46px; padding:9px; border:1px solid #e1e5e8; border-radius:10px; }
+.light-post-poll b { margin-bottom:2px; font-size:9px; }
+.light-post-poll button { height:28px; border:0; border-radius:7px; background:#f2f5f7; color:#5e666d; text-align:left; padding:0 9px; font-size:8px; }
+.light-post-quote { display:grid; grid-template-columns:28px 1fr; align-items:center; gap:8px; margin:8px 0 10px 46px; padding:9px; border-left:3px solid #bcc5cc; border-radius:5px 9px 9px 5px; background:#f5f7f8; color:#626b72; }
+.light-post-quote>svg { width:20px; height:20px; }
+.light-post-quote>div { display:grid; gap:3px; }
+.light-post-quote b { font-size:8px; }
+.light-post-quote small { font-size:8px; line-height:1.35; }
 .light-reactions { height:25px; display:flex; align-items:center; gap:9px; margin-left:46px; padding-top:6px; border-top:1px solid #eef0f2; color:#6f8190; }
 .light-reactions button { display:flex; align-items:center; gap:4px; border:0; padding:0; background:transparent; color:inherit; font-size:9px; }
 .light-reactions button.active { color:#ee6571; font-weight:800; }
@@ -300,6 +317,36 @@ button { cursor:pointer; }
 .light-utility-row .light-space { width:auto; flex:1; max-width:230px; background:#fff; }
 .light-keyboard-foot { display:flex; justify-content:space-between; padding:1px 20px 0; color:#22272b; }
 .light-keyboard-foot svg { width:23px; height:23px; stroke-width:1.8; }
+.light-detail-overlay { position:absolute; z-index:90; inset:0; overflow:hidden; background:#fff; }
+.light-detail-overlay>.status-bar { z-index:95; }
+.light-detail-screen { z-index:1; }
+.light-detail-scroll { padding-top:20px; }
+.light-detail-scroll .editor-line i { min-height:320px; }
+.light-detail-scroll .editor-body textarea { min-height:95px; caret-color:#208fd8; }
+.light-detail-media { position:relative; width:135px; height:180px; margin-top:7px; overflow:hidden; border-radius:11px; }
+.light-detail-media img { width:100%; height:100%; object-fit:cover; }
+.light-detail-media button { position:absolute; right:7px; top:7px; width:23px; height:23px; display:grid; place-items:center; border:0; border-radius:50%; padding:0; background:rgba(30,33,36,.68); color:#fff; }
+.light-detail-media button svg { width:13px; height:13px; }
+.light-detail-screen .mini-poll { position:relative; }
+.light-detail-screen .mini-poll>button { justify-self:end; border:0; background:transparent; color:#a0a5aa; font-size:8px; }
+.light-detail-quote-preview { display:grid; grid-template-columns:29px 1fr 22px; align-items:center; gap:8px; margin-top:8px; padding:9px; border:1px solid #e2e5e7; border-radius:9px; background:#f6f7f8; }
+.light-detail-quote-preview>svg { width:20px; height:20px; color:#66717a; }
+.light-detail-quote-preview>div { display:grid; gap:3px; }
+.light-detail-quote-preview b { font-size:9px; }
+.light-detail-quote-preview p { margin:0; color:#737a80; font-size:8px; line-height:1.35; }
+.light-detail-quote-preview>button { display:grid; place-items:center; border:0; padding:0; background:transparent; color:#9ba0a5; }
+.light-detail-quote-preview>button svg { width:15px; height:15px; }
+.light-detail-tool-overlay { z-index:110; }
+.light-detail-sheet { max-height:70%; }
+.light-detail-photo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+.light-detail-photo-grid button { aspect-ratio:1; overflow:hidden; border:0; border-radius:8px; padding:0; background:#edf0f2; }
+.light-detail-photo-grid img { width:100%; height:100%; object-fit:cover; }
+.light-quote-option { width:100%; display:grid; grid-template-columns:38px 1fr 18px; align-items:center; gap:9px; border:1px solid #e3e6e8; border-radius:12px; padding:11px; background:#fff; text-align:left; }
+.light-quote-option>span { width:38px; height:38px; display:grid; place-items:center; border-radius:50%; background:#e8edf5; }
+.light-quote-option>div { display:grid; gap:4px; }
+.light-quote-option b { font-size:10px; }
+.light-quote-option p { margin:0; color:#727980; font-size:9px; line-height:1.4; }
+.light-quote-option>svg { width:16px; height:16px; color:#9aa0a5; }
 @keyframes sheetup { from { transform:translateY(30px); opacity:.4; } }
 @media (max-height:780px) and (min-width:681px) { .phone { transform:scale(.82); }.demo-stage { gap:25px; }.demo-note { transform:translateX(35px); } }
 @media (max-width:680px) { html,body { background:#fff; }.prototype-page { width:100%; }.demo-stage { display:block; padding:0; min-height:100vh; background:#fff; }.demo-note,.light-prototype-note { display:none; }.phone,.light-phone { width:100vw; height:100dvh; min-height:600px; border:0; border-radius:0; box-shadow:none; }.light-prototype-section { display:block; min-height:100dvh; padding:0; border-top:8px solid #edf0f2; background:#fff; }.status-bar { padding-left:25px; padding-right:25px; }.island { width:136px; }.home-indicator { position:absolute; }.visual-post>img,.post-image { height:270px; } }

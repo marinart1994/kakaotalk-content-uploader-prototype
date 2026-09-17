@@ -14,6 +14,7 @@ type MediaType = "photo" | "video";
 type MediaItem = { id: number; src: string; type: MediaType };
 type SeriesItem = { id: number; text: string; media: MediaItem[] };
 type LightCategory = "전체" | "고민" | "일상" | "질문";
+type LightDetailTool = "photo" | "location" | "link" | "poll" | "quote" | "ai" | null;
 type LightPost = {
   id: number;
   author: string;
@@ -24,6 +25,10 @@ type LightPost = {
   comments: number;
   avatar: string;
   image?: string;
+  location?: string;
+  link?: string;
+  poll?: boolean;
+  quote?: boolean;
 };
 type Panel = "photo" | "photo-editor" | "video-editor" | "location" | "link" | "poll" | "quote" | "emoji" | "ai" | "publish" | "post-menu" | "success" | null;
 
@@ -192,6 +197,14 @@ export default function Home() {
   const [lightPosts, setLightPosts] = useState<LightPost[]>(initialLightPosts);
   const [lightDraft, setLightDraft] = useState("");
   const [likedLightPosts, setLikedLightPosts] = useState<Set<number>>(new Set());
+  const [lightDetailOpen, setLightDetailOpen] = useState(false);
+  const [lightDetailTool, setLightDetailTool] = useState<LightDetailTool>(null);
+  const [lightDetailText, setLightDetailText] = useState("");
+  const [lightDetailPhoto, setLightDetailPhoto] = useState<string | null>(null);
+  const [lightDetailLocation, setLightDetailLocation] = useState<string | null>(null);
+  const [lightDetailLink, setLightDetailLink] = useState<string | null>(null);
+  const [lightDetailPoll, setLightDetailPoll] = useState(false);
+  const [lightDetailQuote, setLightDetailQuote] = useState(false);
   const selectionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const editorBodyRef = useRef<HTMLDivElement | null>(null);
@@ -208,6 +221,7 @@ export default function Home() {
   const lastSeriesText = seriesItems.length ? seriesItems[seriesItems.length - 1].text : copy;
   const canAddSeries = Boolean(lastSeriesText.trim());
   const hasComposerContent = Boolean(copy.trim() || selectedMedia.length || selectedSticker !== null || seriesItems.some(item => item.text.trim() || item.media.length));
+  const hasLightDetailContent = Boolean(lightDetailText.trim() || lightDetailPhoto || lightDetailLocation || lightDetailLink || lightDetailPoll || lightDetailQuote);
 
   const topicSuggestions = combinedCopy.includes("오디세이") || combinedCopy.includes("신화") || combinedCopy.includes("영화")
     ? ["오디세이", "고대 신화", "영화 후기"]
@@ -453,6 +467,50 @@ export default function Home() {
   const removeLightCharacter = () => {
     setLightDraft(current => Array.from(current).slice(0, -1).join(""));
   };
+
+  const openLightDetailComposer = () => {
+    setLightDetailText("");
+    setLightDetailPhoto(null);
+    setLightDetailLocation(null);
+    setLightDetailLink(null);
+    setLightDetailPoll(false);
+    setLightDetailQuote(false);
+    setLightDetailTool(null);
+    setLightDetailOpen(true);
+  };
+
+  const closeLightDetailComposer = () => {
+    setLightDetailTool(null);
+    setLightDetailOpen(false);
+  };
+
+  const publishLightDetailPost = () => {
+    if (!hasLightDetailContent) return;
+    const category: Exclude<LightCategory, "전체"> = lightCategory === "전체" ? "일상" : lightCategory;
+    const fallbackText = lightDetailPoll
+      ? "오늘의 선택, 여러분의 생각은 어떤가요?"
+      : lightDetailLink
+        ? "같이 보고 싶은 링크를 공유해요."
+        : lightDetailPhoto
+          ? "오늘의 순간을 사진으로 남겨요."
+          : lightDetailQuote
+            ? "이 글에 제 생각을 더해봅니다."
+            : "새로운 글감을 남겼어요.";
+    setLightPosts(current => [{
+      id: Date.now(), author: "춘식크루", time: "방금", category,
+      text: lightDetailText.trim() || fallbackText, likes: 0, comments: 0, avatar: "춘",
+      image: lightDetailPhoto ?? undefined,
+      location: lightDetailLocation ?? undefined,
+      link: lightDetailLink ?? undefined,
+      poll: lightDetailPoll || undefined,
+      quote: lightDetailQuote || undefined,
+    }, ...current]);
+    setLightCategory("전체");
+    closeLightDetailComposer();
+  };
+
+  const addLightDetailKey = (key: string) => setLightDetailText(current => `${current}${key}`);
+  const removeLightDetailCharacter = () => setLightDetailText(current => Array.from(current).slice(0, -1).join(""));
 
   return (
     <main className="prototype-page">
@@ -732,6 +790,10 @@ export default function Home() {
                   </div>
                   <p>{post.text}</p>
                   {post.image && <img className="light-post-image" src={post.image} alt={`${post.author}님의 글감 사진`}/>}
+                  {post.location && <div className="light-post-location"><MapPin/>{post.location}</div>}
+                  {post.link && <div className="light-post-link"><span><Link2/></span><div><b>같이 보고 싶은 링크</b><small>{post.link}</small></div><ChevronRight/></div>}
+                  {post.poll && <div className="light-post-poll"><b>오늘의 선택은?</b><button>천천히 더 생각해보기</button><button>지금 바로 도전하기</button></div>}
+                  {post.quote && <div className="light-post-quote"><MessageSquareQuote/><div><b>인용한 글</b><small>“오늘 하루 중 가장 좋았던 순간은 언제였나요?”</small></div></div>}
                   <div className="light-reactions">
                     <button className={liked ? "active" : ""} onClick={() => toggleLightLike(post.id)}><Heart/> 공감 {post.likes + (liked ? 1 : 0)}</button>
                     <i>·</i>
@@ -742,7 +804,7 @@ export default function Home() {
             </div>
             <div className="light-compose">
               <div className="light-input-row">
-                <button className="light-plus" aria-label="첨부" onClick={() => setLightDraft(current => `${current}${current ? " " : ""}📎`)}><Plus/></button>
+                <button className="light-plus" aria-label="상세 글감 작성" onClick={openLightDetailComposer}><Plus/></button>
                 <div className="light-text-field"><input value={lightDraft} onChange={event => setLightDraft(event.target.value)} placeholder="지금 떠오른 글감을 남겨보세요"/><button type="button" aria-label="이모티콘" onClick={() => setLightDraft(current => `${current}🙂`)}><Smile/></button></div>
                 <button className="light-send" aria-label="전송" disabled={!lightDraft.trim()} onClick={publishLightPost}>↑</button>
               </div>
@@ -760,6 +822,56 @@ export default function Home() {
               </div>
             </div>
           </div>
+          {lightDetailOpen && <div className="light-detail-overlay">
+            <StatusBar/>
+            <div className="screen composer-screen light-detail-screen">
+              <header className="composer-top"><button className="close-compose" aria-label="상세 작성 닫기" onClick={closeLightDetailComposer}><X/></button><span/><button className="draft-icon" aria-label="작성 옵션"><SlidersHorizontal/></button><button className="upload-button" disabled={!hasLightDetailContent} onClick={publishLightDetailPost}>올리기</button></header>
+              <div className="composer-scroll light-detail-scroll">
+                <article className="editor-block">
+                  <div className="editor-line"><Avatar/><small>1</small><i/></div>
+                  <div className="editor-body">
+                    <b>춘식크루</b>
+                    <textarea aria-label="상세 글감 내용" value={lightDetailText} autoFocus placeholder="더 자세한 이야기를 적어보세요" onChange={event => setLightDetailText(event.target.value)}/>
+                    {lightDetailPhoto && <div className="light-detail-media"><img src={lightDetailPhoto} alt="첨부한 사진"/><button aria-label="사진 삭제" onClick={() => setLightDetailPhoto(null)}><X/></button></div>}
+                    {lightDetailLocation && <div className="editor-attachment"><span><MapPin/></span><div><small>위치</small><b>{lightDetailLocation}</b></div><button onClick={() => setLightDetailLocation(null)}>×</button></div>}
+                    {lightDetailLink && <div className="editor-attachment"><span><Link2/></span><div><small>링크</small><b>{lightDetailLink}</b></div><button onClick={() => setLightDetailLink(null)}>×</button></div>}
+                    {lightDetailPoll && <div className="mini-poll"><b>오늘의 선택은?</b><span>천천히 더 생각해보기</span><span>지금 바로 도전하기</span><button onClick={() => setLightDetailPoll(false)}>투표 삭제</button></div>}
+                    {lightDetailQuote && <div className="light-detail-quote-preview"><MessageSquareQuote/><div><b>인용한 글</b><p>오늘 하루 중 가장 좋았던 순간은 언제였나요?</p></div><button onClick={() => setLightDetailQuote(false)}><X/></button></div>}
+                  </div>
+                </article>
+              </div>
+              <div className="composer-bottom">
+                <div className="tool-bar">
+                  <button aria-label="사진 추가" onClick={() => setLightDetailTool("photo")}><ImageIcon/></button>
+                  <button aria-label="위치 추가" onClick={() => setLightDetailTool("location")}><MapPin/></button>
+                  <button aria-label="링크 추가" onClick={() => setLightDetailTool("link")}><Link2/></button>
+                  <button aria-label="투표 추가" onClick={() => setLightDetailTool("poll")}><SquareCheckBig/></button>
+                  <button aria-label="게시물 인용" onClick={() => setLightDetailTool("quote")}><MessageSquareQuote/></button>
+                  <button aria-label="이모티콘 추가" onClick={() => addLightDetailKey("🙂")}><Smile/></button>
+                  <i/>
+                  <button className="ai-button" aria-label="AI 글감 추천" onClick={() => setLightDetailTool("ai")}><Sparkles/><b>AI</b></button>
+                </div>
+                <div className="fake-keyboard">
+                  <div className="suggestions"><span>I</span><span>The</span><span>I’m</span></div>
+                  {keyboardRows.map((row, rowIndex) => <div className={`key-row row-${rowIndex}`} key={row}>{rowIndex === 2 && <button className="wide-key">⬆</button>}{[...row].map(key => <button key={key} onClick={() => addLightDetailKey(key)}>{key}</button>)}{rowIndex === 2 && <button className="wide-key" onClick={removeLightDetailCharacter}>⌫</button>}</div>)}
+                  <div className="key-row utility-row"><button>123</button><button onClick={() => addLightDetailKey("🙂")}>☺</button><button className="space" onClick={() => addLightDetailKey(" ")}>space <small>EN</small></button><button onClick={() => addLightDetailKey("\n")}>↵</button></div>
+                  <div className="keyboard-foot"><button aria-label="키보드 언어"><Globe2/></button><button aria-label="음성 입력"><Mic/></button></div>
+                </div>
+              </div>
+            </div>
+            {lightDetailTool && <div className="phone-overlay light-detail-tool-overlay" onMouseDown={() => setLightDetailTool(null)}>
+              <section className="mobile-sheet light-detail-sheet" role="dialog" aria-modal="true" aria-label="상세 글감 도구" onMouseDown={event => event.stopPropagation()}>
+                <div className="sheet-handle"/><button className="sheet-close" aria-label="닫기" onClick={() => setLightDetailTool(null)}><X/></button>
+                {lightDetailTool === "photo" && <><h3>사진 또는 영상</h3><p className="sheet-lead">글감에 보여줄 이미지를 선택하세요.</p><div className="light-detail-photo-grid">{photos.map((photo,index) => <button key={photo} onClick={() => { setLightDetailPhoto(photo); setLightDetailTool(null); }}><img src={photo} alt={`추천 사진 ${index + 1}`}/></button>)}</div></>}
+                {lightDetailTool === "location" && <><h3>위치</h3><div className="place-list">{["판교역", "서울숲", "한강공원"].map(place => <button key={place} onClick={() => { setLightDetailLocation(place); setLightDetailTool(null); }}><span><MapPin/></span><div><b>{place}</b><small>추천 위치</small></div><i><Plus/></i></button>)}</div></>}
+                {lightDetailTool === "link" && <><h3>링크</h3><label className="sheet-input">URL 입력<input defaultValue="https://brunch.co.kr/" autoFocus/></label><div className="link-preview"><span><Link2/></span><div><b>같이 보고 싶은 이야기</b><small>brunch.co.kr</small></div></div><button className="sheet-primary" onClick={() => { setLightDetailLink("https://brunch.co.kr/"); setLightDetailTool(null); }}>링크 추가</button></>}
+                {lightDetailTool === "poll" && <><h3>투표</h3><label className="sheet-input">질문<input defaultValue="오늘의 선택은?"/></label><label className="sheet-input">선택지 1<input defaultValue="천천히 더 생각해보기"/></label><label className="sheet-input">선택지 2<input defaultValue="지금 바로 도전하기"/></label><button className="sheet-primary" onClick={() => { setLightDetailPoll(true); setLightDetailTool(null); }}>투표 추가</button></>}
+                {lightDetailTool === "quote" && <><h3>인용할 글</h3><button className="light-quote-option" onClick={() => { setLightDetailQuote(true); setLightDetailTool(null); }}><span>🌙</span><div><b>밤산책</b><p>오늘 하루 중 가장 좋았던 순간은 언제였나요?</p></div><ChevronRight/></button></>}
+                {lightDetailTool === "ai" && <><div className="ai-head"><span><Sparkles/></span><div><h3>AI 글감 추천</h3><p>지금 가볍게 나누기 좋은 주제예요.</p></div></div><div className="ai-topics">{["오늘 가장 기억에 남은 순간", "요즘 나를 웃게 한 것", "누군가에게 묻고 싶은 고민"].map(topic => <button key={topic} onClick={() => { setLightDetailText(current => `${current}${current ? "\n" : ""}${topic}`); setLightDetailTool(null); }}>#{topic}<span>＋</span></button>)}</div></>}
+              </section>
+            </div>}
+            <div className="home-indicator"/>
+          </div>}
           <div className="home-indicator"/>
         </section>
       </section>
