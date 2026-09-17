@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  BarChart3, BatteryMedium, Bookmark, ChevronRight, Globe2, Heart, ImageIcon,
+  BarChart3, BatteryMedium, Bookmark, ChevronLeft, ChevronRight, Globe2, Heart, ImageIcon,
   Link2, MapPin, MessageCircle, MessageSquareQuote, Mic, MoreHorizontal, Music2,
   Check, Pencil, Plus, Repeat2, Search, Settings, Share2, ShoppingBag, Signal,
-  SlidersHorizontal, Smile, Sparkles, SquareCheckBig, UserPlus,
+  Send, SlidersHorizontal, Smile, Sparkles, SquareCheckBig, UserPlus,
   Trash2, UserRound, Video, Wifi, X,
 } from "lucide-react";
 
@@ -216,8 +216,8 @@ function DraftSaveDialog({ onCancel, onSave }: { onCancel: () => void; onSave: (
   </div>;
 }
 
-function ActionRow({ textPost = false }: { textPost?: boolean }) {
-  return <div className="action-row"><button aria-label="댓글"><MessageCircle/></button><button aria-label="리포스트"><Repeat2/><small>{textPost ? "15" : "8"}</small></button><button aria-label="좋아요"><Heart/><small>{textPost ? "649" : "215"}</small></button><button aria-label="조회수"><BarChart3/><small>{textPost ? "3.1만" : "4.2천"}</small></button><span/><button aria-label="저장"><Bookmark/></button><button aria-label="공유"><Share2/></button></div>;
+function ActionRow({ textPost = false, onComment }: { textPost?: boolean; onComment?: () => void }) {
+  return <div className="action-row"><button aria-label="댓글" onClick={onComment}><MessageCircle/></button><button aria-label="리포스트"><Repeat2/><small>{textPost ? "15" : "8"}</small></button><button aria-label="좋아요"><Heart/><small>{textPost ? "649" : "215"}</small></button><button aria-label="조회수"><BarChart3/><small>{textPost ? "3.1만" : "4.2천"}</small></button><span/><button aria-label="저장"><Bookmark/></button><button aria-label="공유"><Share2/></button></div>;
 }
 
 function QuotedPostCard({ removable = false, onRemove }: { removable?: boolean; onRemove?: () => void }) {
@@ -250,6 +250,9 @@ export default function Home() {
   const [editingTopic, setEditingTopic] = useState(false);
   const [topicDraft, setTopicDraft] = useState("");
   const [published, setPublished] = useState(false);
+  const [postDetailOpen, setPostDetailOpen] = useState(false);
+  const [detailComment, setDetailComment] = useState("");
+  const [detailComments, setDetailComments] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [showSelectionMenu, setShowSelectionMenu] = useState(false);
   const [selectionMenuPosition, setSelectionMenuPosition] = useState({ left: 0, top: 0 });
@@ -308,6 +311,13 @@ export default function Home() {
   const flash = (message: string) => {
     setToast(message);
     window.setTimeout(() => setToast(null), 1800);
+  };
+
+  const submitDetailComment = () => {
+    const comment = detailComment.trim();
+    if (!comment) return;
+    setDetailComments(current => [...current, comment]);
+    setDetailComment("");
   };
 
   const setEditorText = (value: string) => {
@@ -773,7 +783,13 @@ export default function Home() {
           <button className="interest-row"><Avatar/><span><b>춘식크루</b><small>당신의 관심사를 올려주세요</small></span><ChevronRight/></button>
           <div className="hairline"/>
           <div className="mobile-feed-scroll">
-            {published && <article className="k-post fresh-post">
+            {published && <article
+              className="k-post fresh-post clickable-post"
+              tabIndex={0}
+              aria-label="발행한 게시물 상세 보기"
+              onClick={event => { if (!(event.target as HTMLElement).closest("button")) setPostDetailOpen(true); }}
+              onKeyDown={event => { if (event.key === "Enter") setPostDetailOpen(true); }}
+            >
               <div className="post-head"><Avatar/><span><b>춘식크루{selectedTopic && <em className="post-topic-badge">{selectedTopic}<ChevronRight/></em>}</b><small>방금 전 · 판교</small></span><button aria-label="내 게시물 더보기" onClick={() => setPanel("post-menu")}><MoreHorizontal/></button></div>
               {allSeriesContent.some(item => item.text.trim() || item.media.length) && <div className="published-series">{allSeriesContent.map((item,index) => (item.text.trim() || item.media.length) && <div className="published-series-item" key={item.id}>
                 <b>{index + 1}</b>
@@ -784,7 +800,7 @@ export default function Home() {
               {link && <div className="post-link"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>{link}</small></div></div>}
               {poll && <div className="post-poll"><b>다음 영화 후기 주제는?</b><button>오디세이 세계관</button><button>고대 신화 속 영웅</button></div>}
               {quotedPost && <QuotedPostCard/>}
-              <ActionRow/>
+              <ActionRow onComment={() => setPostDetailOpen(true)}/>
             </article>}
             <article className="k-post">
               <div className="post-head"><Avatar kind="lion"/><span><b>수상한 라이언 <em><MapPin/> 판교</em></b><small>1시간 전</small></span><button>팔로우</button><button aria-label="더보기"><MoreHorizontal/></button></div>
@@ -959,7 +975,7 @@ export default function Home() {
           </section>
         </div>}
 
-        {panel && panel !== "quote" && panel !== "photo" && panel !== "photo-editor" && panel !== "video-editor" && <div className={`phone-overlay ${panel === "success" ? "solid" : ""}`} onMouseDown={() => panel !== "success" && setPanel(null)}>
+        {panel && panel !== "quote" && panel !== "photo" && panel !== "photo-editor" && panel !== "video-editor" && <div className={`phone-overlay ${panel === "success" ? "solid" : ""} ${postDetailOpen ? "above-detail" : ""}`} onMouseDown={() => panel !== "success" && setPanel(null)}>
           <section className={`mobile-sheet panel-${panel} ${panel === "emoji" ? `emoji-tab-${emojiTab}` : ""}`} role="dialog" aria-modal="true" aria-label="추가 설정" onMouseDown={event => event.stopPropagation()}>
             {panel !== "success" && panel !== "emoji" && <><div className="sheet-handle"/><button className="sheet-close" aria-label="닫기" onClick={() => setPanel(null)}><X/></button></>}
             {panel === "location" && <><h3>위치</h3><label className="sheet-search"><Search/><input placeholder="장소 검색" autoFocus/></label><div className="place-list">{["Sydney Opera House","판교역","Darling Harbour","The Rocks, Sydney"].map(place => <button key={place} onClick={() => {setLocation(place);setPanel(null);}}><span><MapPin/></span><div><b>{place}</b><small>추천 위치</small></div><i><Plus/></i></button>)}</div></>}
@@ -987,8 +1003,43 @@ export default function Home() {
             </div>}
             {panel === "ai" && <><div className="ai-head"><span><Sparkles/></span><div><h3>AI 추천 주제</h3><p>작성한 내용을 바탕으로 추천했어요. 하나만 선택할 수 있어요.</p></div></div><div className="ai-topics">{topicSuggestions.map(topic => <button key={topic} className={selectedTopic === topic ? "selected" : ""} onClick={() => { setSelectedTopic(topic); setTopicDraft(topic); }}>#{topic}<span>{selectedTopic === topic ? "✓" : "+"}</span></button>)}</div><button className="sheet-primary" onClick={() => setPanel(null)}>추천 주제 적용</button></>}
             {panel === "publish" && <><h3>발행 옵션</h3><p className="sheet-lead">콘텐츠를 누구에게 보여줄지 선택해주세요.</p><div className="publish-options"><div><b>공개 여부</b><span><button className="active">전체</button><button>팔로워</button></span></div><div><b>댓글 작성 대상</b><span><button className="active">전체</button><button>팔로워</button></span></div><label><span><b>리포스트 및 인용 허용</b><small>다른 사람이 콘텐츠를 공유할 수 있어요</small></span><input type="checkbox" defaultChecked/></label><label><span><b>AI 관련 표시</b><small>추천 기능을 사용한 콘텐츠로 표시해요</small></span><input type="checkbox" defaultChecked/></label></div><button className="sheet-primary publish-now" onClick={() => setPanel("success")}>피드에 올리기</button></>}
-            {panel === "post-menu" && <><h3>게시물 관리</h3><button className="delete-post-action" onClick={() => { setPublished(false); setPanel(null); flash("게시물을 삭제했어요"); }}><span><Trash2/></span><div><b>삭제하기</b><small>이 게시물을 피드에서 삭제합니다</small></div><ChevronRight/></button></>}
+            {panel === "post-menu" && <><h3>게시물 관리</h3><button className="delete-post-action" onClick={() => { setPublished(false); setPostDetailOpen(false); setPanel(null); flash("게시물을 삭제했어요"); }}><span><Trash2/></span><div><b>삭제하기</b><small>이 게시물을 피드에서 삭제합니다</small></div><ChevronRight/></button></>}
             {panel === "success" && <div className="success-panel"><span>✓</span><small>PUBLISHED</small><h3>피드에 올렸어요!</h3><p>작성한 콘텐츠가 카카오톡 3탭에<br/>새로운 이야기로 추가됐습니다.</p><button onClick={() => {setPublished(true);setFullDraftSaved(false);setPanel(null);setView("feed");flash("콘텐츠가 발행됐어요");}}>피드에서 보기</button></div>}
+          </section>
+        </div>}
+
+        {postDetailOpen && published && <div className="post-detail-overlay">
+          <StatusBar/>
+          <section className="post-detail-screen" aria-label="게시물 상세와 댓글">
+            <header className="post-detail-header"><button aria-label="피드로 돌아가기" onClick={() => setPostDetailOpen(false)}><ChevronLeft/></button><span/><button aria-label="게시물 더보기" onClick={() => setPanel("post-menu")}><MoreHorizontal/></button></header>
+            <div className="post-detail-scroll">
+              <article className="post-detail-post">
+                <div className="post-head"><Avatar/><span><b>춘식크루{selectedTopic && <em className="post-topic-badge">{selectedTopic}<ChevronRight/></em>}</b><small>방금 전 · 판교</small></span></div>
+                {allSeriesContent.some(item => item.text.trim() || item.media.length) && <div className="published-series detail-published-series">{allSeriesContent.map((item,index) => (item.text.trim() || item.media.length) && <div className="published-series-item" key={item.id}>
+                  <b>{index + 1}</b>
+                  <div>{item.text && <p><RichTextContent value={item.text}/></p>}{item.media.length > 0 && <div className={`post-media-grid count-${Math.min(item.media.length, 4)}`}>{item.media.map(media => <div className="post-media" key={media.id}><img className="post-image" src={media.src} alt={media.type === "video" ? "게시한 영상" : "게시한 사진"}/>{media.type === "video" && <span><Video/> 영상</span>}</div>)}</div>}</div>
+                </div>)}</div>}
+                {selectedSticker !== null && <div className="post-sticker"><StickerSprite index={selectedSticker}/></div>}
+                {location && <div className="post-location"><MapPin/> {location}</div>}
+                {link && <div className="post-link"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>{link}</small></div></div>}
+                {poll && <div className="post-poll"><b>다음 영화 후기 주제는?</b><button>오디세이 세계관</button><button>고대 신화 속 영웅</button></div>}
+                {quotedPost && <QuotedPostCard/>}
+                <div className="detail-reactions"><span>❤️ 333</span><span>🥰 888</span><span>😮 1K</span><span>+222</span><i/><button aria-label="공유"><Share2/></button><button aria-label="저장"><Bookmark/></button></div>
+              </article>
+              <section className="detail-comments" aria-label="댓글 목록">
+                <h3>댓글 {1 + detailComments.length}개</h3>
+                <article className="detail-comment">
+                  <span className="comment-avatar">🐣</span><div><b>배부른 춘식이-V70 <small>1주 전</small></b><p>놀란 감독 빨리 차기작 내주면 좋겠다</p><button>답글 1개 보기 · 답글 달기</button></div><aside><MoreHorizontal/><Heart/><small>12</small></aside>
+                </article>
+                <article className="detail-comment detail-reply">
+                  <Avatar/><div><b>춘식크루 <small>방금 전</small></b><p>저도요! 다음 작품도 기대돼요.</p></div><aside><MoreHorizontal/><Heart/><small>3</small></aside>
+                </article>
+                {detailComments.map((comment,index) => <article className="detail-comment" key={`${comment}-${index}`}>
+                  <Avatar/><div><b>춘식크루 <small>방금 전</small></b><p>{comment}</p><button>답글 달기</button></div><aside><MoreHorizontal/><Heart/><small>0</small></aside>
+                </article>)}
+              </section>
+            </div>
+            <div className="detail-comment-composer"><input value={detailComment} onChange={event => setDetailComment(event.target.value)} onKeyDown={event => { if (event.key === "Enter") submitDetailComment(); }} placeholder="댓글을 남겨보세요"/><button aria-label="이모티콘 추가" onClick={() => setDetailComment(current => `${current}🙂`)}><Smile/></button><button aria-label="댓글 전송" disabled={!detailComment.trim()} onClick={submitDetailComment}><Send/></button></div>
           </section>
         </div>}
 
