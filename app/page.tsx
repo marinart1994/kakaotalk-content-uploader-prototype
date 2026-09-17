@@ -1329,7 +1329,7 @@ export default function Home() {
               <div className="ghost-bubbles">
                 {ghostMoods.map((mood,index) => <div className={`ghost-bubble bubble-${index % 5}`} key={mood.id}><span>{mood.avatar}</span><b>{mood.text}</b></div>)}
               </div>
-              <div className="ghost-mood-compose"><input value={ghostMoodDraft} onChange={event => setGhostMoodDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter") publishGhostMood(); }} placeholder="지금 감정을 우다다 남겨보세요"/><button aria-label="기분 이모티콘"><Smile/></button><button aria-label="광장에 기분 남기기" disabled={!ghostMoodDraft.trim()} onClick={publishGhostMood}>↑</button></div>
+              <div className="ghost-mood-compose"><label><input value={ghostMoodDraft} onChange={event => setGhostMoodDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter") publishGhostMood(); }} placeholder="지금 감정을 우다다 남겨보세요"/><button type="button" aria-label="기분 이모티콘 추가" onClick={() => setGhostMoodDraft(current => `${current}🙂`)}><Smile/></button></label><button aria-label="광장에 기분 남기기" disabled={!ghostMoodDraft.trim()} onClick={publishGhostMood}>↑</button></div>
             </section>
 
             <div className="ghost-feed-heading"><h3>가벼운 글감</h3><p>짧게 쓰고, 편하게 나누는 커뮤니티</p></div>
