@@ -38,11 +38,14 @@ button { cursor:pointer; }
 .post-detail-overlay { position:absolute; z-index:85; inset:0; background:#fff; }
 .post-detail-screen { position:absolute; inset:52px 0 0; overflow:hidden; background:#fff; }
 .post-detail-header { height:58px; display:grid; grid-template-columns:42px 1fr 42px; align-items:center; padding:0 13px; }
+.post-detail-header>b { text-align:center; font-size:15px; letter-spacing:-.4px; }
 .post-detail-header button { width:38px; height:38px; display:grid; place-items:center; border:0; border-radius:50%; padding:0; background:transparent; color:#3f4449; }
 .post-detail-header button svg { width:23px; height:23px; stroke-width:1.8; }
 .post-detail-scroll { position:absolute; inset:58px 0 70px; overflow-y:auto; scrollbar-width:none; }
 .post-detail-scroll::-webkit-scrollbar { display:none; }
 .post-detail-post { padding:13px 20px 18px; border-bottom:1px solid #e9ebed; }
+.detail-copy { margin:15px 0 8px; font-size:14px; line-height:1.56; letter-spacing:-.25px; }
+.detail-hero-image { display:block; width:100%; max-height:330px; margin-top:14px; border-radius:12px; object-fit:cover; }
 .detail-published-series { margin-top:15px; }
 .detail-published-series .published-series-item p { font-size:14px; line-height:1.55; }
 .detail-reactions { height:46px; display:flex; align-items:center; gap:7px; margin-top:12px; }

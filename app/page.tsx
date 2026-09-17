@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 type View = "feed" | "composer";
+type DetailSource = "published" | "lion" | "leaf";
 type MediaType = "photo" | "video";
 type MediaItem = { id: number; src: string; type: MediaType };
 type SeriesItem = { id: number; text: string; media: MediaItem[] };
@@ -251,6 +252,7 @@ export default function Home() {
   const [topicDraft, setTopicDraft] = useState("");
   const [published, setPublished] = useState(false);
   const [postDetailOpen, setPostDetailOpen] = useState(false);
+  const [detailSource, setDetailSource] = useState<DetailSource>("published");
   const [detailComment, setDetailComment] = useState("");
   const [detailComments, setDetailComments] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -311,6 +313,11 @@ export default function Home() {
   const flash = (message: string) => {
     setToast(message);
     window.setTimeout(() => setToast(null), 1800);
+  };
+
+  const openPostDetail = (source: DetailSource) => {
+    setDetailSource(source);
+    setPostDetailOpen(true);
   };
 
   const submitDetailComment = () => {
@@ -787,8 +794,8 @@ export default function Home() {
               className="k-post fresh-post clickable-post"
               tabIndex={0}
               aria-label="발행한 게시물 상세 보기"
-              onClick={event => { if (!(event.target as HTMLElement).closest("button")) setPostDetailOpen(true); }}
-              onKeyDown={event => { if (event.key === "Enter") setPostDetailOpen(true); }}
+              onClick={event => { if (!(event.target as HTMLElement).closest("button")) openPostDetail("published"); }}
+              onKeyDown={event => { if (event.key === "Enter") openPostDetail("published"); }}
             >
               <div className="post-head"><Avatar/><span><b>춘식크루{selectedTopic && <em className="post-topic-badge">{selectedTopic}<ChevronRight/></em>}</b><small>방금 전 · 판교</small></span><button aria-label="내 게시물 더보기" onClick={() => setPanel("post-menu")}><MoreHorizontal/></button></div>
               {allSeriesContent.some(item => item.text.trim() || item.media.length) && <div className="published-series">{allSeriesContent.map((item,index) => (item.text.trim() || item.media.length) && <div className="published-series-item" key={item.id}>
@@ -800,19 +807,31 @@ export default function Home() {
               {link && <div className="post-link"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>{link}</small></div></div>}
               {poll && <div className="post-poll"><b>다음 영화 후기 주제는?</b><button>오디세이 세계관</button><button>고대 신화 속 영웅</button></div>}
               {quotedPost && <QuotedPostCard/>}
-              <ActionRow onComment={() => setPostDetailOpen(true)}/>
+              <ActionRow onComment={() => openPostDetail("published")}/>
             </article>}
-            <article className="k-post">
+            <article
+              className="k-post clickable-post"
+              tabIndex={0}
+              aria-label="수상한 라이언 게시물 상세 보기"
+              onClick={event => { if (!(event.target as HTMLElement).closest("button")) openPostDetail("lion"); }}
+              onKeyDown={event => { if (event.key === "Enter") openPostDetail("lion"); }}
+            >
               <div className="post-head"><Avatar kind="lion"/><span><b>수상한 라이언 <em><MapPin/> 판교</em></b><small>1시간 전</small></span><button>팔로우</button><button aria-label="더보기"><MoreHorizontal/></button></div>
               <p>라이언 게임, 귀여운 캐릭터만 보고 가볍게 시작했는데 생각보다 몰입감이 꽤 좋다. 조작은 어렵지 않지만 스테이지를 거듭할수록 전략적인 플레이가 필요하고, 라이언 특유의 매력을 살린 연출도 보는 재미가 있다. 다만 콘텐츠 업데이트와 보상 흐름에 따라 이용자들의 평가는 조금 더 지켜봐야 할 듯하다.<br/>당분간은 새로운 이벤트와 운영 방향을 확인하며 천천히 즐겨볼 생각! 🦁🎮</p>
               <div className="tag-line"><span>#라이언게임</span><span>#게임추천</span><span>#모바일게임</span><span>#게임일상</span></div>
-              <ActionRow textPost/>
+              <ActionRow textPost onComment={() => openPostDetail("lion")}/>
             </article>
-            <article className="k-post visual-post">
+            <article
+              className="k-post visual-post clickable-post"
+              tabIndex={0}
+              aria-label="이니스프리 게시물 상세 보기"
+              onClick={event => { if (!(event.target as HTMLElement).closest("button")) openPostDetail("leaf"); }}
+              onKeyDown={event => { if (event.key === "Enter") openPostDetail("leaf"); }}
+            >
               <div className="post-head"><Avatar kind="leaf"/><span><b>이니스프리</b><small>1시간 전</small></span><button>팔로우</button><button aria-label="더보기"><MoreHorizontal/></button></div>
               <img src={photos[5]} alt="맑은 하늘과 바다"/>
               <div className="media-badges"><Music2/><Video/></div>
-              <ActionRow/>
+              <ActionRow onComment={() => openPostDetail("leaf")}/>
             </article>
           </div>
           <button className="floating-create" aria-label="새 콘텐츠 만들기" onClick={startComposer}><Plus/></button>
@@ -1008,31 +1027,39 @@ export default function Home() {
           </section>
         </div>}
 
-        {postDetailOpen && published && <div className="post-detail-overlay">
+        {postDetailOpen && (detailSource !== "published" || published) && <div className="post-detail-overlay">
           <StatusBar/>
           <section className="post-detail-screen" aria-label="게시물 상세와 댓글">
-            <header className="post-detail-header"><button aria-label="피드로 돌아가기" onClick={() => setPostDetailOpen(false)}><ChevronLeft/></button><span/><button aria-label="게시물 더보기" onClick={() => setPanel("post-menu")}><MoreHorizontal/></button></header>
+            <header className="post-detail-header"><button aria-label="피드로 돌아가기" onClick={() => setPostDetailOpen(false)}><ChevronLeft/></button><b>게시물</b><button aria-label="게시물 더보기" onClick={() => detailSource === "published" ? setPanel("post-menu") : flash("게시물 메뉴를 열었어요")}><MoreHorizontal/></button></header>
             <div className="post-detail-scroll">
               <article className="post-detail-post">
-                <div className="post-head"><Avatar/><span><b>춘식크루{selectedTopic && <em className="post-topic-badge">{selectedTopic}<ChevronRight/></em>}</b><small>방금 전 · 판교</small></span></div>
-                {allSeriesContent.some(item => item.text.trim() || item.media.length) && <div className="published-series detail-published-series">{allSeriesContent.map((item,index) => (item.text.trim() || item.media.length) && <div className="published-series-item" key={item.id}>
-                  <b>{index + 1}</b>
-                  <div>{item.text && <p><RichTextContent value={item.text}/></p>}{item.media.length > 0 && <div className={`post-media-grid count-${Math.min(item.media.length, 4)}`}>{item.media.map(media => <div className="post-media" key={media.id}><img className="post-image" src={media.src} alt={media.type === "video" ? "게시한 영상" : "게시한 사진"}/>{media.type === "video" && <span><Video/> 영상</span>}</div>)}</div>}</div>
-                </div>)}</div>}
-                {selectedSticker !== null && <div className="post-sticker"><StickerSprite index={selectedSticker}/></div>}
-                {location && <div className="post-location"><MapPin/> {location}</div>}
-                {link && <div className="post-link"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>{link}</small></div></div>}
-                {poll && <div className="post-poll"><b>다음 영화 후기 주제는?</b><button>오디세이 세계관</button><button>고대 신화 속 영웅</button></div>}
-                {quotedPost && <QuotedPostCard/>}
+                <div className="post-head">
+                  <Avatar kind={detailSource === "lion" ? "lion" : detailSource === "leaf" ? "leaf" : "crew"}/>
+                  <span><b>{detailSource === "lion" ? "수상한 라이언" : detailSource === "leaf" ? "이니스프리" : "춘식크루"}{detailSource === "published" && selectedTopic && <em className="post-topic-badge">{selectedTopic}<ChevronRight/></em>}</b><small>{detailSource === "published" ? "방금 전 · 판교" : "1시간 전"}</small></span>
+                </div>
+                {detailSource === "published" ? <>
+                  {allSeriesContent.some(item => item.text.trim() || item.media.length) && <div className="published-series detail-published-series">{allSeriesContent.map((item,index) => (item.text.trim() || item.media.length) && <div className="published-series-item" key={item.id}>
+                    <b>{index + 1}</b>
+                    <div>{item.text && <p><RichTextContent value={item.text}/></p>}{item.media.length > 0 && <div className={`post-media-grid count-${Math.min(item.media.length, 4)}`}>{item.media.map(media => <div className="post-media" key={media.id}><img className="post-image" src={media.src} alt={media.type === "video" ? "게시한 영상" : "게시한 사진"}/>{media.type === "video" && <span><Video/> 영상</span>}</div>)}</div>}</div>
+                  </div>)}</div>}
+                  {selectedSticker !== null && <div className="post-sticker"><StickerSprite index={selectedSticker}/></div>}
+                  {location && <div className="post-location"><MapPin/> {location}</div>}
+                  {link && <div className="post-link"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>{link}</small></div></div>}
+                  {poll && <div className="post-poll"><b>다음 영화 후기 주제는?</b><button>오디세이 세계관</button><button>고대 신화 속 영웅</button></div>}
+                  {quotedPost && <QuotedPostCard/>}
+                </> : detailSource === "lion" ? <>
+                  <p className="detail-copy">라이언 게임, 귀여운 캐릭터만 보고 가볍게 시작했는데 생각보다 몰입감이 꽤 좋다. 조작은 어렵지 않지만 스테이지를 거듭할수록 전략적인 플레이가 필요하고, 라이언 특유의 매력을 살린 연출도 보는 재미가 있다. 다만 콘텐츠 업데이트와 보상 흐름에 따라 이용자들의 평가는 조금 더 지켜봐야 할 듯하다.<br/>당분간은 새로운 이벤트와 운영 방향을 확인하며 천천히 즐겨볼 생각! 🦁🎮</p>
+                  <div className="tag-line"><span>#라이언게임</span><span>#게임추천</span><span>#모바일게임</span><span>#게임일상</span></div>
+                </> : <img className="detail-hero-image" src={photos[5]} alt="맑은 하늘과 바다"/>}
                 <div className="detail-reactions"><span>❤️ 333</span><span>🥰 888</span><span>😮 1K</span><span>+222</span><i/><button aria-label="공유"><Share2/></button><button aria-label="저장"><Bookmark/></button></div>
               </article>
               <section className="detail-comments" aria-label="댓글 목록">
                 <h3>댓글 {1 + detailComments.length}개</h3>
                 <article className="detail-comment">
-                  <span className="comment-avatar">🐣</span><div><b>배부른 춘식이-V70 <small>1주 전</small></b><p>놀란 감독 빨리 차기작 내주면 좋겠다</p><button>답글 1개 보기 · 답글 달기</button></div><aside><MoreHorizontal/><Heart/><small>12</small></aside>
+                  <span className="comment-avatar">🐣</span><div><b>배부른 춘식이-V70 <small>1주 전</small></b><p>{detailSource === "lion" ? "라이언 특유의 귀여운 연출이 정말 좋더라고요!" : detailSource === "leaf" ? "사진만 봐도 당장 떠나고 싶어져요." : "놀란 감독 빨리 차기작 내주면 좋겠다"}</p><button>답글 1개 보기 · 답글 달기</button></div><aside><MoreHorizontal/><Heart/><small>12</small></aside>
                 </article>
                 <article className="detail-comment detail-reply">
-                  <Avatar/><div><b>춘식크루 <small>방금 전</small></b><p>저도요! 다음 작품도 기대돼요.</p></div><aside><MoreHorizontal/><Heart/><small>3</small></aside>
+                  <Avatar kind={detailSource === "lion" ? "lion" : detailSource === "leaf" ? "leaf" : "crew"}/><div><b>{detailSource === "lion" ? "수상한 라이언" : detailSource === "leaf" ? "이니스프리" : "춘식크루"} <small>방금 전</small></b><p>{detailSource === "lion" ? "맞아요, 다음 업데이트도 기대하고 있어요." : detailSource === "leaf" ? "맑은 날에 보면 더 예쁜 곳이에요!" : "저도요! 다음 작품도 기대돼요."}</p></div><aside><MoreHorizontal/><Heart/><small>3</small></aside>
                 </article>
                 {detailComments.map((comment,index) => <article className="detail-comment" key={`${comment}-${index}`}>
                   <Avatar/><div><b>춘식크루 <small>방금 전</small></b><p>{comment}</p><button>답글 달기</button></div><aside><MoreHorizontal/><Heart/><small>0</small></aside>
