@@ -1348,7 +1348,7 @@ export default function Home() {
               <div className="ghost-plaza-world" aria-hidden="true">
                 <i className="plaza-bench bench-a"/><i className="plaza-bench bench-b"/><i className="plaza-bench bench-c"/>
                 <span className="plaza-tree tree-a">🌳</span><span className="plaza-tree tree-b">🌲</span><span className="plaza-tree tree-c">🌳</span>
-                {['🧑🏻‍🦰','👩🏻‍🎤','🧑🏽‍🚀','👩🏻‍🦱','🧑🏻‍🎓','👨🏾‍🌾','👩🏻‍💻'].map((avatar,index) => <span className={`plaza-npc npc-${index + 1}`} key={`${avatar}-${index}`}>{avatar}</span>)}
+                {['주황 곰','갈색 곰','노란 강아지','흰 토끼','흰 오리','복숭아','남색 고양이','초록 공룡'].map((avatar,index) => <span className={`plaza-npc npc-${index + 1}`} key={avatar} aria-label={avatar}/>)}
               </div>
               <header><h3>카톡 광장</h3><span><i/>10분 후 사라져요</span></header>
               <div className="ghost-bubbles">
