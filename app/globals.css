@@ -260,7 +260,7 @@ button { cursor:pointer; }
 .light-categories { height:52px; display:flex; align-items:center; gap:7px; padding:4px 15px 10px; }
 .light-categories button { height:34px; min-width:53px; padding:0 16px; border:1px solid #dde3e8; border-radius:18px; background:#fff; color:#30363b; font-size:12px; }
 .light-categories button.active { border-color:#151719; background:#151719; color:#fff; font-weight:800; }
-.light-post-list { position:absolute; top:205px; left:0; right:0; bottom:350px; overflow-y:auto; padding:0 13px 14px; scrollbar-width:none; }
+.light-post-list { position:absolute; top:230px; left:0; right:0; bottom:350px; overflow-y:auto; padding:0 13px 22px; scroll-padding-top:14px; overscroll-behavior:contain; scrollbar-width:none; }
 .light-post-list::-webkit-scrollbar { display:none; }
 .light-post { margin-bottom:9px; padding:12px 13px 10px; border:1px solid #e2e6e9; border-radius:13px; background:#fff; box-shadow:0 2px 7px rgba(42,49,54,.025); }
 .light-post-head { display:grid; grid-template-columns:37px 1fr 24px; align-items:center; gap:9px; }
@@ -271,6 +271,7 @@ button { cursor:pointer; }
 .light-post-head>button { width:24px; height:24px; display:grid; place-items:center; border:0; padding:0; background:transparent; color:#6c7782; }
 .light-post-head>button svg { width:18px; height:18px; }
 .light-post>p { margin:8px 0 9px 46px; white-space:pre-line; color:#24282b; font-size:12px; line-height:1.52; letter-spacing:-.2px; }
+.light-post-image { display:block; width:calc(100% - 46px); height:178px; margin:9px 0 10px 46px; border-radius:11px; object-fit:cover; }
 .light-reactions { height:25px; display:flex; align-items:center; gap:9px; margin-left:46px; padding-top:6px; border-top:1px solid #eef0f2; color:#6f8190; }
 .light-reactions button { display:flex; align-items:center; gap:4px; border:0; padding:0; background:transparent; color:inherit; font-size:9px; }
 .light-reactions button.active { color:#ee6571; font-weight:800; }

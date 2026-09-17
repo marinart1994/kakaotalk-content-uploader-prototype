@@ -23,6 +23,7 @@ type LightPost = {
   likes: number;
   comments: number;
   avatar: string;
+  image?: string;
 };
 type Panel = "photo" | "photo-editor" | "video-editor" | "location" | "link" | "poll" | "quote" | "emoji" | "ai" | "publish" | "post-menu" | "success" | null;
 
@@ -59,9 +60,12 @@ const keyboardRows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 const koreanKeyboardRows = ["ㅂㅈㄷㄱㅅㅛㅕㅑㅐㅔ", "ㅁㄴㅇㄹㅎㅗㅓㅏㅣ", "ㅋㅌㅊㅍㅠㅜㅡ"];
 const MINI_TOKEN_START = 0xe000;
 const initialLightPosts: LightPost[] = [
-  { id: 1, author: "소담한 오후", time: "방금", category: "고민", text: "요즘 별일 아닌데도 괜히 지칠 때가 있어요.\n다들 이럴 땐 어떻게 쉬나요?", likes: 12, comments: 4, avatar: "🐈" },
-  { id: 2, author: "밤산책", time: "3분 전", category: "질문", text: "오늘 하루 중 가장 좋았던 순간은 언제였나요?", likes: 8, comments: 6, avatar: "🌙" },
-  { id: 3, author: "초록컵", time: "10분 전", category: "일상", text: "기분 전환이 필요할 때 찾는 곳이 있나요?", likes: 5, comments: 3, avatar: "🍵" },
+  { id: 1, author: "버스 창가", time: "방금", category: "고민", text: "오늘 아침에 버스를 놓쳐서 학교에서 조금 떨어진 곳에 내려주는 버스를 탔는데, 몇 년 전 정말 좋아했던 사람이 있었어요. 그 친구가 항상 그 버스를 탄다고 들었는데 앞으로 같은 버스를 타면 너무 티가 날까요? ㅠㅠ", likes: 12, comments: 4, avatar: "🚌" },
+  { id: 2, author: "연애 300일", time: "2분 전", category: "고민", text: "여자친구와 300일 정도 만났어요. 서로의 과거 연애와 상처를 잘 알고 있어서 주변 이성 문제에 더 조심해왔는데요.\n\n여러 명이 함께 만나는 건 괜찮지만 단둘이 만나는 건 피하자고 이야기했어요. 그런데 여자친구가 제 남자인 친구와 둘이 공부하는 정도는 괜찮다고 생각한다네요. 제가 과거 때문에 예민한 걸까요, 아니면 서로 조금 더 배려해야 할까요?", likes: 31, comments: 18, avatar: "💭" },
+  { id: 3, author: "고1 진로고민", time: "6분 전", category: "질문", text: "고등학교 1학년이고 치위생학과를 희망하고 있어요. 내신 평균이 5등급제 기준 2.59 정도인데 어떤 대학교를 목표로 하면 좋을까요? 공부를 더 해서 성적을 올릴 생각입니다. 비슷한 경험이 있다면 알려주세요!", likes: 7, comments: 11, avatar: "📚" },
+  { id: 4, author: "또로롱", time: "9분 전", category: "일상", text: "오늘의 데일리룩이에요. 편하게 입어봤는데 어떤가요?", likes: 24, comments: 9, avatar: "🌿", image: photos[4] },
+  { id: 5, author: "Pearl", time: "12분 전", category: "질문", text: "초6인데 한 달 용돈으로 4만 원을 받고 있어요. 다들 보통 얼마 정도 받나요?", likes: 5, comments: 13, avatar: "🫧" },
+  { id: 6, author: "소담한 오후", time: "18분 전", category: "일상", text: "요즘 별일 아닌데도 괜히 지칠 때가 있어요. 잠깐 산책하고 따뜻한 음료를 마시니 조금 나아졌어요. 다들 기분 전환이 필요할 때 찾는 곳이 있나요?", likes: 16, comments: 6, avatar: "🐈" },
 ];
 const stickerIndexes = Array.from({ length: 30 }, (_, index) => index);
 const miniEmoticons = Array.from({ length: 17 }, (_, index) => index);
@@ -727,6 +731,7 @@ export default function Home() {
                     <button aria-label="더보기"><MoreHorizontal/></button>
                   </div>
                   <p>{post.text}</p>
+                  {post.image && <img className="light-post-image" src={post.image} alt={`${post.author}님의 글감 사진`}/>}
                   <div className="light-reactions">
                     <button className={liked ? "active" : ""} onClick={() => toggleLightLike(post.id)}><Heart/> 공감 {post.likes + (liked ? 1 : 0)}</button>
                     <i>·</i>
