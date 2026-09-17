@@ -40,6 +40,7 @@ button { cursor:pointer; }
 .recommended .selected-topic-card { width:max-content; max-width:100%; display:inline-flex; align-items:center; gap:3px; padding:6px 8px 6px 11px; border:0; border-radius:15px; background:#f1f2f3; box-shadow:none; }.selected-topic-card strong { color:#55595f; font-size:10px; font-weight:700; }.selected-topic-card button { width:15px; height:15px; display:grid; place-items:center; padding:0; border:0; border-radius:0; background:transparent; color:#55595f; }.selected-topic-card button.delete-topic { color:#55595f; }.selected-topic-card svg { width:11px; height:11px; stroke-width:2.3; }.selected-topic-card input { width:105px; min-width:0; height:20px; border:0; border-bottom:1px solid #91969b; border-radius:0; background:transparent; outline:0; padding:0 2px; color:#4f5358; font-size:10px; font-weight:700; }
 .tool-bar .quote-tool svg { width:21px; height:21px; stroke-width:2.25; }
 .text-editor.with-quote { min-height:46px; }
+.text-editor.with-media { min-height:32px; padding-bottom:4px; }
 .quoted-post-card { position:relative; width:100%; margin:4px 0 12px; padding:12px; border:1px solid #e2e4e6; border-radius:13px; background:#fff; text-align:left; }
 .quoted-post-card .remove-quote { position:absolute; top:11px; right:10px; width:22px; height:22px; display:grid; place-items:center; border:0; background:transparent; color:#35383c; padding:0; }
 .quoted-post-card .remove-quote svg { width:17px; height:17px; stroke-width:1.8; }
@@ -103,6 +104,48 @@ button { cursor:pointer; }
 .delete-post-action b { font-size:12px; }
 .delete-post-action small { color:#a66c6c; font-size:8px; }
 .delete-post-action>svg { width:16px; height:16px; }
+.sticker-sprite { display:block; background-repeat:no-repeat; background-size:600% 500%; }
+.editor-sticker-card { position:relative; width:112px; height:112px; margin:3px 0 10px; }
+.editor-sticker-card>.sticker-sprite { width:100%; height:100%; }
+.editor-sticker-card>button { position:absolute; right:1px; top:1px; width:22px; height:22px; display:grid; place-items:center; border:0; border-radius:50%; background:rgba(31,34,37,.68); color:#fff; }
+.editor-sticker-card>button svg { width:13px; height:13px; }
+.post-sticker { width:145px; height:145px; margin:8px 0 4px; }
+.post-sticker .sticker-sprite { width:100%; height:100%; }
+.mobile-sheet.panel-emoji { height:86%; max-height:86%; overflow:hidden; padding:0; }
+.emoticon-picker { height:100%; display:flex; flex-direction:column; background:#fff; }
+.emoticon-handle { width:43px; height:4px; flex:0 0 4px; margin:11px auto 10px; border-radius:4px; background:#b6b9bd; }
+.emoticon-main-tabs { height:50px; flex:0 0 50px; display:grid; grid-template-columns:repeat(4,1fr) 44px; align-items:center; gap:2px; margin:0 15px; padding-left:4px; border-radius:25px; background:#f0f1f2; }
+.emoticon-main-tabs>button { height:42px; border:0; border-radius:22px; background:transparent; color:#7f8489; font-size:11px; font-weight:800; }
+.emoticon-main-tabs>button.active { background:#fff; color:#17191c; box-shadow:0 2px 8px rgba(27,31,35,.05); }
+.emoticon-main-tabs .emoticon-store { display:grid; place-items:center; border-radius:0; background:#fff; color:#5a5f64; }
+.emoticon-store svg { width:24px; height:24px; }
+.emoticon-packs { height:66px; flex:0 0 66px; display:flex; align-items:center; gap:8px; overflow-x:auto; padding:7px 12px; border-bottom:1px solid #eff0f1; scrollbar-width:none; }
+.emoticon-packs::-webkit-scrollbar { display:none; }
+.emoticon-packs>button { position:relative; width:43px; height:43px; flex:0 0 43px; display:grid; place-items:center; border:0; border-radius:13px; background:#f5f6f7; color:#777c81; }
+.emoticon-packs>button.active { background:#f1f2f3; }
+.emoticon-packs .sticker-sprite { width:38px; height:38px; }
+.emoticon-packs button>i { position:absolute; left:4px; top:3px; width:6px; height:6px; border-radius:50%; background:#ff623f; }
+.emoticon-packs>button svg { width:22px; height:22px; }
+.emoticon-content { flex:1; min-height:0; overflow-y:auto; padding:13px 15px 34px; scrollbar-width:none; }
+.emoticon-content::-webkit-scrollbar { display:none; }
+.emoticon-title { height:34px; display:flex; align-items:center; gap:7px; margin-bottom:3px; }
+.emoticon-title b { font-size:13px; letter-spacing:-.3px; }
+.emoticon-title span { color:#8e9398; font-size:9px; }
+.emoticon-search { height:38px; display:flex; align-items:center; gap:7px; margin:0 0 9px; padding:0 11px; border-radius:19px; background:#f2f3f4; color:#80858a; }
+.emoticon-search svg { width:16px; height:16px; }
+.emoticon-search input { width:100%; border:0; outline:0; background:transparent; font-size:10px; }
+.sticker-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:5px 3px; }
+.sticker-grid.compact { padding-bottom:15px; }
+.sticker-grid>button { aspect-ratio:1; min-width:0; display:grid; place-items:center; border:0; border-radius:10px; padding:2px; background:#fff; }
+.sticker-grid>button:active { background:#f3f4f5; }
+.sticker-grid .sticker-sprite { width:100%; height:100%; }
+.mini-emoticon-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:7px 4px; padding:4px 0 15px; }
+.mini-emoticon-grid button { aspect-ratio:1; border:0; border-radius:12px; background:#fff5fa; color:#ff4ca1; font-size:24px; font-weight:900; }
+.friends-more { height:42px; display:flex; align-items:center; justify-content:center; gap:6px; margin:8px auto 24px; padding:0 18px; border:1px solid #e3e5e7; border-radius:22px; background:#fff; color:#34383c; font-size:11px; font-weight:800; }
+.friends-more svg { width:15px; height:15px; }
+.discover-emoticons { display:grid; grid-template-columns:repeat(2,1fr); gap:9px; }
+.discover-emoticons>button { display:grid; grid-template-columns:repeat(2,1fr); gap:2px; aspect-ratio:1.35; overflow:hidden; border:0; border-radius:13px; padding:5px; background:#f3f4f5; }
+.discover-emoticons .sticker-sprite { width:100%; height:100%; }
 .post-media-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; margin-top:13px; overflow:hidden; border-radius:13px; }
 .post-media-grid.count-1 { grid-template-columns:1fr; }
 .post-media-grid .post-image { height:180px; margin:0; border-radius:0; }

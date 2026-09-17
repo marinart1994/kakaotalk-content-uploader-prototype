@@ -45,6 +45,14 @@ const quotePhotos = [
 ];
 
 const keyboardRows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+const stickerIndexes = Array.from({ length: 30 }, (_, index) => index);
+const miniEmoticons = ["♡", "♥", "✿", "🎀", "✦", "☕", "♪", "→", "🎂", "!!", "OK", "BYE", "☀", "☁", "★", "☺", "☂", "♬"];
+
+function StickerSprite({ index, className = "" }: { index: number; className?: string }) {
+  const column = index % 6;
+  const row = Math.floor(index / 6);
+  return <span className={`sticker-sprite ${className}`} style={{ backgroundImage: "url(emoticon-cat-sprite.png)", backgroundPosition: `${column * 20}% ${row * 25}%` }}/>
+}
 
 function Avatar({ kind = "crew" }: { kind?: "crew" | "lion" | "leaf" }) {
   return <span className={`k-avatar ${kind}`}>{kind === "crew" ? "춘" : kind === "lion" ? "라" : "잎"}</span>;
@@ -76,6 +84,8 @@ export default function Home() {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
   const [pendingMedia, setPendingMedia] = useState<MediaItem[]>([]);
   const [editingMedia, setEditingMedia] = useState<MediaItem | null>(null);
+  const [selectedSticker, setSelectedSticker] = useState<number | null>(null);
+  const [emojiTab, setEmojiTab] = useState<"search" | "emoticon" | "mini" | "discover">("emoticon");
   const [photoEffect, setPhotoEffect] = useState<"ai" | "portrait">("ai");
   const [location, setLocation] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
@@ -146,6 +156,8 @@ export default function Home() {
     setSelectedMedia([]);
     setPendingMedia([]);
     setEditingMedia(null);
+    setSelectedSticker(null);
+    setEmojiTab("emoticon");
     setPhotoEffect("ai");
     setLocation(null);
     setLink(null);
@@ -161,10 +173,6 @@ export default function Home() {
   };
 
   const addSeriesContent = () => {
-    if (seriesCount >= 10) {
-      flash("시리즈는 최대 10개까지 작성할 수 있어요");
-      return;
-    }
     const id = nextSeriesId.current++;
     setSeriesItems(current => [...current, { id, text: "" }]);
     setActiveSeriesId(id);
@@ -282,6 +290,7 @@ export default function Home() {
             {published && <article className="k-post fresh-post">
               <div className="post-head"><Avatar/><span><b>춘식크루</b><small>방금 전 · 판교</small></span><button aria-label="내 게시물 더보기" onClick={() => setPanel("post-menu")}><MoreHorizontal/></button></div>
               {combinedCopy && <div className={`published-series ${spoiler ? "spoiler-copy" : ""}`}>{[copy, ...seriesItems.map(item => item.text)].filter(Boolean).map((text,index) => <p key={`${index}-${text}`}><b>{index + 1}</b><span>{text}</span></p>)}</div>}
+              {selectedSticker !== null && <div className="post-sticker"><StickerSprite index={selectedSticker}/></div>}
               {selectedMedia.length > 0 && <div className={`post-media-grid count-${Math.min(selectedMedia.length, 4)}`}>{selectedMedia.map(media => <div className="post-media" key={media.id}><img className="post-image" src={media.src} alt={media.type === "video" ? "새로 올린 영상" : "새로 올린 사진"}/>{media.type === "video" && <span><Video/> 영상</span>}</div>)}</div>}
               {location && <div className="post-location"><MapPin/> {location}</div>}
               {link && <div className="post-link"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>{link}</small></div></div>}
@@ -306,7 +315,7 @@ export default function Home() {
           <button className="floating-create" aria-label="새 콘텐츠 만들기" onClick={startComposer}><Plus/></button>
           <nav className="bottom-nav" aria-label="카카오톡 탭"><button aria-label="친구"><UserRound/></button><button aria-label="채팅"><MessageCircle/><b>40</b></button><button className="active" aria-label="피드"><span><Smile/></span></button><button aria-label="쇼핑"><ShoppingBag/></button><button aria-label="더보기"><MoreHorizontal/></button></nav>
         </div> : <div className="screen composer-screen">
-          <header className="composer-top"><button className="close-compose" aria-label="작성 취소" onClick={resetComposer}><X/></button><span/><button className="draft-icon" aria-label="발행 옵션" onClick={() => setPanel("publish")}><SlidersHorizontal/></button><button className="upload-button" disabled={!combinedCopy.trim() && selectedMedia.length === 0} onClick={() => setPanel("success")}>{seriesCount > 1 ? `${seriesCount}개 올리기` : "올리기"}</button></header>
+          <header className="composer-top"><button className="close-compose" aria-label="작성 취소" onClick={resetComposer}><X/></button><span/><button className="draft-icon" aria-label="발행 옵션" onClick={() => setPanel("publish")}><SlidersHorizontal/></button><button className="upload-button" disabled={!combinedCopy.trim() && selectedMedia.length === 0 && selectedSticker === null} onClick={() => setPanel("success")}>{seriesCount > 1 ? `${seriesCount}개 올리기` : "올리기"}</button></header>
           <div className="composer-scroll">
             <article className="editor-block">
               <div className="editor-line"><Avatar/><small>1</small><i/><button aria-label="콘텐츠 추가" onClick={addSeriesContent}><Plus/></button></div>
@@ -314,7 +323,7 @@ export default function Home() {
                 <b>춘식크루</b>
                 <div
                   ref={node => { if (node) { seriesEditorRefs.current.set(0, node); if (activeSeriesId === 0) editorRef.current = node; } }}
-                  className={`text-editor ${quotedPost ? "with-quote" : ""}`}
+                  className={`text-editor ${quotedPost ? "with-quote" : ""} ${selectedMedia.length > 0 || selectedSticker !== null ? "with-media" : ""}`}
                   role="textbox"
                   aria-label="게시글 내용"
                   aria-multiline="true"
@@ -331,6 +340,7 @@ export default function Home() {
                 />
                 {showSelectionMenu && activeSeriesId === 0 && <div className="selection-tools" style={{ left: selectionMenuPosition.left, top: selectionMenuPosition.top }}><button onMouseDown={event => event.preventDefault()} onClick={() => flash("내용을 오려냈어요")}>오려두기</button><button onMouseDown={event => event.preventDefault()} onClick={() => navigator.clipboard?.writeText(window.getSelection()?.toString() || activeCopy)}>복사하기</button><button onMouseDown={event => event.preventDefault()} onClick={() => flash("클립보드 내용을 붙여넣었어요")}>붙여넣기</button><button onMouseDown={event => event.preventDefault()} className={spoiler ? "active" : ""} onClick={() => setSpoiler(!spoiler)}>스포방지로 표시</button><button><ChevronRight/></button></div>}
                 {quotedPost && <QuotedPostCard removable onRemove={() => setQuotedPost(false)}/>}
+                {selectedSticker !== null && <div className="editor-sticker-card"><StickerSprite index={selectedSticker}/><button aria-label="이모티콘 삭제" onClick={() => setSelectedSticker(null)}><X/></button></div>}
                 {selectedMedia.length > 0 && <div className="editor-media-grid">
                   {selectedMedia.map(media => <div className={`editor-photo ${media.type}`} key={media.id}>
                     <button className="media-edit" aria-label={`${media.type === "video" ? "영상" : "사진"} 편집`} onClick={() => { setPendingMedia(selectedMedia); setEditingMedia(media); setPanel(media.type === "video" ? "video-editor" : "photo-editor"); }}><img src={media.src} alt={media.type === "video" ? "첨부한 영상" : "첨부한 사진"}/><span>편집</span></button>
@@ -452,11 +462,30 @@ export default function Home() {
 
         {panel && panel !== "quote" && panel !== "photo" && panel !== "photo-editor" && panel !== "video-editor" && <div className={`phone-overlay ${panel === "success" ? "solid" : ""}`} onMouseDown={() => panel !== "success" && setPanel(null)}>
           <section className={`mobile-sheet panel-${panel}`} role="dialog" aria-modal="true" aria-label="추가 설정" onMouseDown={event => event.stopPropagation()}>
-            {panel !== "success" && <><div className="sheet-handle"/><button className="sheet-close" aria-label="닫기" onClick={() => setPanel(null)}><X/></button></>}
+            {panel !== "success" && panel !== "emoji" && <><div className="sheet-handle"/><button className="sheet-close" aria-label="닫기" onClick={() => setPanel(null)}><X/></button></>}
             {panel === "location" && <><h3>위치</h3><label className="sheet-search"><Search/><input placeholder="장소 검색" autoFocus/></label><div className="place-list">{["Sydney Opera House","판교역","Darling Harbour","The Rocks, Sydney"].map(place => <button key={place} onClick={() => {setLocation(place);setPanel(null);}}><span><MapPin/></span><div><b>{place}</b><small>추천 위치</small></div><i><Plus/></i></button>)}</div></>}
             {panel === "link" && <><h3>링크</h3><label className="sheet-input">URL 입력<input defaultValue="https://www.sydney.com/" autoFocus/></label><div className="link-preview"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>sydney.com</small></div></div><button className="sheet-primary" onClick={() => {setLink("https://www.sydney.com/");setPanel(null);}}>링크 추가</button></>}
             {panel === "poll" && <><h3>투표</h3><label className="sheet-input">투표 제목<input defaultValue="다음 영화 후기 주제는?"/></label><label className="sheet-input">선택지 1<input defaultValue="오디세이 세계관"/></label><label className="sheet-input">선택지 2<input defaultValue="고대 신화 속 영웅"/></label><button className="sheet-primary" onClick={() => {setPoll(true);setPanel(null);}}>투표 만들기</button></>}
-            {panel === "emoji" && <><h3>이모티콘</h3><div className="emoji-grid">{["✈️","🌏","📸","🌅","☕","✨","💛","🌊","😎","🥰","👏","🎉"].map(emoji => <button key={emoji} onClick={() => {setEditorText(`${editorRef.current?.textContent ?? activeCopy}${emoji}`);setPanel(null);}}>{emoji}</button>)}</div></>}
+            {panel === "emoji" && <div className="emoticon-picker">
+              <div className="emoticon-handle"/>
+              <div className="emoticon-main-tabs">
+                <button className={emojiTab === "search" ? "active" : ""} onClick={() => setEmojiTab("search")}>검색</button>
+                <button className={emojiTab === "emoticon" ? "active" : ""} onClick={() => setEmojiTab("emoticon")}>이모티콘</button>
+                <button className={emojiTab === "mini" ? "active" : ""} onClick={() => setEmojiTab("mini")}>미니</button>
+                <button className={emojiTab === "discover" ? "active" : ""} onClick={() => setEmojiTab("discover")}>발견</button>
+                <button className="emoticon-store" aria-label="이모티콘 스토어"><ShoppingBag/></button>
+              </div>
+              <div className="emoticon-packs" aria-label="이모티콘 팩">
+                {[0,1,4,10,22].map((index,packIndex) => <button key={index} className={packIndex === 0 ? "active" : ""} onClick={() => setEmojiTab("emoticon")}><StickerSprite index={index}/>{packIndex === 0 && <i/>}</button>)}
+                <button aria-label="팩 추가"><Plus/></button><button aria-label="팩 설정"><Settings/></button><button aria-label="닫기" onClick={() => setPanel(null)}><X/></button>
+              </div>
+              <div className="emoticon-content">
+                {emojiTab === "search" && <><label className="emoticon-search"><Search/><input placeholder="이모티콘 검색" autoFocus/></label><div className="emoticon-title"><b>최근 사용</b></div><div className="sticker-grid compact">{stickerIndexes.slice(0,12).map(index => <button key={index} aria-label={`이모티콘 ${index + 1} 사용`} onClick={() => { setSelectedSticker(index); setPanel(null); flash("이모티콘을 추가했어요"); }}><StickerSprite index={index}/></button>)}</div></>}
+                {emojiTab === "emoticon" && <><div className="emoticon-title"><b>몽글 회색 고양이</b><span>새 스티커 팩 ›</span></div><div className="sticker-grid">{stickerIndexes.map(index => <button key={index} aria-label={`고양이 이모티콘 ${index + 1} 사용`} onClick={() => { setSelectedSticker(index); setPanel(null); flash("이모티콘을 추가했어요"); }}><StickerSprite index={index}/></button>)}</div></>}
+                {emojiTab === "mini" && <><div className="emoticon-title"><b>핑크 미니 이모티콘</b><span>작게 표현해요 ›</span></div><div className="mini-emoticon-grid">{miniEmoticons.map(symbol => <button key={symbol} onClick={() => { setEditorText(`${editorRef.current?.textContent ?? activeCopy}${symbol}`); setPanel(null); }}>{symbol}</button>)}</div><button className="friends-more">🐥 카카오프렌즈 더보기 <ChevronRight/></button></>}
+                {emojiTab === "discover" && <><div className="emoticon-title"><b>추천 미니 이모티콘</b><span>취향을 발견해요 ›</span></div><div className="discover-emoticons">{[[0,4,8,12],[2,7,13,18],[5,11,17,23],[6,15,21,29]].map((group,index) => <button key={index} onClick={() => setEmojiTab("emoticon")}>{group.map(sticker => <StickerSprite index={sticker} key={sticker}/>)}</button>)}</div></>}
+              </div>
+            </div>}
             {panel === "ai" && <><div className="ai-head"><span><Sparkles/></span><div><h3>AI 추천 주제</h3><p>작성한 내용을 바탕으로 추천했어요. 하나만 선택할 수 있어요.</p></div></div><div className="ai-topics">{topicSuggestions.map(topic => <button key={topic} className={selectedTopic === topic ? "selected" : ""} onClick={() => { setSelectedTopic(topic); setTopicDraft(topic); }}>#{topic}<span>{selectedTopic === topic ? "✓" : "+"}</span></button>)}</div><button className="sheet-primary" onClick={() => setPanel(null)}>추천 주제 적용</button></>}
             {panel === "publish" && <><h3>발행 옵션</h3><p className="sheet-lead">콘텐츠를 누구에게 보여줄지 선택해주세요.</p><div className="publish-options"><div><b>공개 여부</b><span><button className="active">전체</button><button>팔로워</button></span></div><div><b>댓글 작성 대상</b><span><button className="active">전체</button><button>팔로워</button></span></div><label><span><b>리포스트 및 인용 허용</b><small>다른 사람이 콘텐츠를 공유할 수 있어요</small></span><input type="checkbox" defaultChecked/></label><label><span><b>AI 관련 표시</b><small>추천 기능을 사용한 콘텐츠로 표시해요</small></span><input type="checkbox" defaultChecked/></label></div><button className="sheet-primary publish-now" onClick={() => setPanel("success")}>피드에 올리기</button></>}
             {panel === "post-menu" && <><h3>게시물 관리</h3><button className="delete-post-action" onClick={() => { setPublished(false); setPanel(null); flash("게시물을 삭제했어요"); }}><span><Trash2/></span><div><b>삭제하기</b><small>이 게시물을 피드에서 삭제합니다</small></div><ChevronRight/></button></>}
