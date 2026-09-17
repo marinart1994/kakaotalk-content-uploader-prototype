@@ -35,7 +35,7 @@ type LightPost = {
   sticker?: number;
 };
 type GhostMood = { id: number; avatar: string; text: string };
-type GhostPost = { id: number; avatar: string; author: string; time: string; category: string; text: string; image?: string };
+type GhostPost = { id: number; avatar: string; author: string; time: string; category: string; text: string; likes: number; comments: number; image?: string };
 type Panel = "photo" | "photo-editor" | "video-editor" | "location" | "link" | "poll" | "quote" | "emoji" | "ai" | "publish" | "post-menu" | "success" | null;
 
 const photos = [
@@ -80,6 +80,17 @@ const initialLightPosts: LightPost[] = [
   { id: 5, author: "Pearl", time: "12분 전", category: "질문", text: "초6인데 한 달 용돈으로 4만 원을 받고 있어요. 다들 보통 얼마 정도 받나요?", likes: 5, comments: 13, avatar: "🫧" },
   { id: 6, author: "소담한 오후", time: "18분 전", category: "일상", text: "요즘 별일 아닌데도 괜히 지칠 때가 있어요. 잠깐 산책하고 따뜻한 음료를 마시니 조금 나아졌어요. 다들 기분 전환이 필요할 때 찾는 곳이 있나요?", likes: 16, comments: 6, avatar: "🐈" },
 ];
+const initialGhostPosts: GhostPost[] = initialLightPosts.map(post => ({
+  id: post.id,
+  avatar: post.avatar,
+  author: post.author,
+  time: post.time,
+  category: post.category,
+  text: post.text,
+  likes: post.likes,
+  comments: post.comments,
+  image: post.image,
+}));
 const stickerIndexes = Array.from({ length: 30 }, (_, index) => index);
 const miniEmoticons = Array.from({ length: 17 }, (_, index) => index);
 const ghostAutoMessages = [
@@ -300,10 +311,7 @@ export default function Home() {
   ]);
   const [ghostFeedDraft, setGhostFeedDraft] = useState("");
   const [ghostKeyboardOpen, setGhostKeyboardOpen] = useState(false);
-  const [ghostPosts, setGhostPosts] = useState<GhostPost[]>([
-    { id: 1, avatar: "🚌", author: "버스 창가", time: "방금", category: "고민", text: "오늘 아침에 버스를 놓쳐서 학교에서 조금 떨어진 곳에 내려주는 버스를 탔는데, 몇 년 전 정말 좋아했던 사람이 있었어요. 앞으로 같은 버스를 타면 너무 티가 날까요? ㅠㅠ" },
-    { id: 2, avatar: "🏞️", author: "연애 300일", time: "2시간 전", category: "일상", text: "300일을 기념해서 작은 여행을 가기로 했어요! 혹시 서울 근교에 당일치기 좋은 장소가 있을까요? 💛" },
-  ]);
+  const [ghostPosts, setGhostPosts] = useState<GhostPost[]>(initialGhostPosts);
   const [ghostEditorOpen, setGhostEditorOpen] = useState(false);
   const [ghostEditorText, setGhostEditorText] = useState("");
   const [ghostEditorPhoto, setGhostEditorPhoto] = useState<string | null>(null);
@@ -366,7 +374,7 @@ export default function Home() {
   const publishGhostFeed = () => {
     const text = ghostFeedDraft.trim();
     if (!text) return;
-    setGhostPosts(current => [{ id: Date.now(), avatar: "춘", author: "춘식크루", time: "방금", category: "일상", text }, ...current]);
+    setGhostPosts(current => [{ id: Date.now(), avatar: "춘", author: "춘식크루", time: "방금", category: "일상", text, likes: 0, comments: 0 }, ...current]);
     setGhostFeedDraft("");
     setGhostKeyboardOpen(false);
   };
@@ -374,7 +382,7 @@ export default function Home() {
   const publishGhostEditor = () => {
     if (!hasGhostEditorContent) return;
     const extras = [ghostEditorLocation && "📍 서울숲", ghostEditorLink && "🔗 같이 보고 싶은 링크", ghostEditorPoll && "☑️ 오늘의 선택 투표", ghostEditorQuote && "💬 인용한 글"].filter(Boolean).join("\n");
-    setGhostPosts(current => [{ id: Date.now(), avatar: "춘", author: "춘식크루", time: "방금", category: "일상", text: [ghostEditorText.trim(), extras].filter(Boolean).join("\n"), image: ghostEditorPhoto ?? undefined }, ...current]);
+    setGhostPosts(current => [{ id: Date.now(), avatar: "춘", author: "춘식크루", time: "방금", category: "일상", text: [ghostEditorText.trim(), extras].filter(Boolean).join("\n"), likes: 0, comments: 0, image: ghostEditorPhoto ?? undefined }, ...current]);
     setGhostEditorText("");
     setGhostEditorPhoto(null);
     setGhostEditorLocation(false);
@@ -1363,8 +1371,8 @@ export default function Home() {
               {ghostPosts.map(post => <article className="ghost-feed-post" key={post.id}>
                 <div className="ghost-post-head"><span>{post.avatar}</span><div><b>{post.author}</b><small>{post.time} · {post.category}</small></div><button aria-label="더보기"><MoreHorizontal/></button></div>
                 <p>{post.text}</p>
-                {post.image && <img src={post.image} alt="게시물 첨부 사진"/>}
-                <div><button><Heart/> 공감 12</button><i>·</i><button><MessageCircle/> 댓글 4</button></div>
+                {post.image && <img src={post.image} alt={`${post.author}님의 글감 사진`}/>}
+                <div><button><Heart/> 공감 {post.likes}</button><i>·</i><button><MessageCircle/> 댓글 {post.comments}</button></div>
               </article>)}
             </div>
 
