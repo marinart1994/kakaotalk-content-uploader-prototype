@@ -82,6 +82,19 @@ button { cursor:pointer; }
 .editor-photo>em svg { width:10px; height:10px; }
 .editor-media-add { width:36px; height:36px; display:grid; place-items:center; justify-self:start; border:0; border-radius:50%; background:#d8dbde; color:#fff; }
 .editor-media-add svg { width:19px; height:19px; }
+.editor-line>small { margin-top:3px; color:#9fa4a9; font-size:8px; line-height:1; }
+.series-editor-block { margin-top:12px; }
+.series-editor-block .editor-line i { min-height:48px; margin-bottom:0; }
+.series-editor-body { position:relative; min-height:72px; padding-top:2px; }
+.series-text-editor { min-height:64px; padding:4px 32px 10px 0; }
+.series-text-editor:empty:before { content:attr(data-placeholder); color:#aeb2b7; pointer-events:none; }
+.remove-series { position:absolute; z-index:3; right:0; top:0; width:27px; height:27px; display:grid; place-items:center; border:0; background:transparent; color:#9ca1a6; }
+.remove-series svg { width:16px; height:16px; }
+.series-comment-note { display:flex; align-items:center; gap:6px; margin:9px 0 16px 51px; color:#92979c; font-size:9px; }
+.series-comment-note svg { width:14px; height:14px; }
+.published-series { display:grid; gap:10px; margin:13px 0 7px; }
+.published-series p { display:grid; grid-template-columns:19px 1fr; gap:7px; margin:0; font-size:14px; line-height:1.56; letter-spacing:-.25px; white-space:pre-line; }
+.published-series p>b { width:19px; height:19px; display:grid; place-items:center; border-radius:50%; background:#1d1f22; color:#fff; font-size:8px; }
 .post-media-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; margin-top:13px; overflow:hidden; border-radius:13px; }
 .post-media-grid.count-1 { grid-template-columns:1fr; }
 .post-media-grid .post-image { height:180px; margin:0; border-radius:0; }
