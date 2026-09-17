@@ -234,11 +234,10 @@ export default function Home() {
     setPanel("photo");
   };
 
-  const chooseMedia = (item: MediaItem) => {
-    const existingIndex = pendingMedia.findIndex(media => media.id === item.id);
-    if (existingIndex >= 0) {
-      setEditingMedia(item);
-      setPanel(item.type === "video" ? "video-editor" : "photo-editor");
+  const toggleMediaSelection = (item: MediaItem) => {
+    const selected = pendingMedia.some(media => media.id === item.id);
+    if (selected) {
+      setPendingMedia(current => current.filter(media => media.id !== item.id));
       return;
     }
     if (pendingMedia.length >= 10) {
@@ -246,6 +245,17 @@ export default function Home() {
       return;
     }
     setPendingMedia(current => [...current, item]);
+  };
+
+  const openMediaEditor = (item: MediaItem) => {
+    const selected = pendingMedia.some(media => media.id === item.id);
+    if (!selected && pendingMedia.length >= 10) {
+      flash("미디어는 최대 10개까지 선택할 수 있어요");
+      return;
+    }
+    if (!selected) setPendingMedia(current => [...current, item]);
+    setEditingMedia(item);
+    setPanel(item.type === "video" ? "video-editor" : "photo-editor");
   };
 
   return (
@@ -400,11 +410,13 @@ export default function Home() {
               <button className="camera-tile" aria-label="카메라 열기" onClick={() => flash("카메라 시연입니다")}><ImageIcon/><small>카메라</small></button>
               {galleryItems.map((item,index) => {
                 const selectedIndex = pendingMedia.findIndex(media => media.id === item.id);
-                return <button key={item.id} className={selectedIndex >= 0 ? "selected" : ""} aria-label={`${item.type === "video" ? "영상" : "사진"} ${index + 1} 선택`} onClick={() => chooseMedia(item)}>
-                  <img src={item.src} alt=""/>
-                  {item.type === "video" && <span className="gallery-video"><Video/>0:05</span>}
-                  <i>{selectedIndex >= 0 ? selectedIndex + 1 : ""}</i>
-                </button>;
+                return <div key={item.id} className={`gallery-item ${selectedIndex >= 0 ? "selected" : ""}`}>
+                  <button className="gallery-preview" aria-label={`${item.type === "video" ? "영상" : "사진"} ${index + 1} 상세 편집`} onClick={() => openMediaEditor(item)}>
+                    <img src={item.src} alt=""/>
+                    {item.type === "video" && <span className="gallery-video"><Video/>0:05</span>}
+                  </button>
+                  <button className="gallery-select" aria-label={`${item.type === "video" ? "영상" : "사진"} ${index + 1} ${selectedIndex >= 0 ? "선택 해제" : "바로 선택"}`} onClick={() => toggleMediaSelection(item)}>{selectedIndex >= 0 ? selectedIndex + 1 : ""}</button>
+                </div>;
               })}
             </div>
           </section>
