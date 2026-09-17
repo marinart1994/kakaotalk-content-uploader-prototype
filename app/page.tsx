@@ -82,6 +82,16 @@ const initialLightPosts: LightPost[] = [
 ];
 const stickerIndexes = Array.from({ length: 30 }, (_, index) => index);
 const miniEmoticons = Array.from({ length: 17 }, (_, index) => index);
+const ghostAutoMessages = [
+  { avatar: "😮‍💨", text: "오늘은 조금 천천히 가고 싶어" },
+  { avatar: "🌙", text: "집 가는 길 공기가 좋다" },
+  { avatar: "🥹", text: "누가 수고했다고 말해줬으면" },
+  { avatar: "🍀", text: "작지만 좋은 일이 생겼어" },
+  { avatar: "🐥", text: "괜히 웃음이 나는 오후" },
+  { avatar: "🎧", text: "이 노래 계속 듣는 중" },
+  { avatar: "🔥", text: "오늘은 진짜 해낸다" },
+  { avatar: "☕", text: "따뜻한 커피 한 잔 필요해" },
+];
 
 function StickerSprite({ index, className = "" }: { index: number; className?: string }) {
   const column = index % 6;
@@ -535,6 +545,16 @@ export default function Home() {
       }
     });
   }, [view]);
+
+  useEffect(() => {
+    let cursor = 0;
+    const interval = window.setInterval(() => {
+      const message = ghostAutoMessages[cursor % ghostAutoMessages.length];
+      cursor += 1;
+      setGhostMoods(current => [...current.slice(-4), { id: Date.now() + cursor, ...message }]);
+    }, 2800);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const handleEditorSelection = () => {
     if (selectionTimer.current) clearTimeout(selectionTimer.current);
@@ -1327,7 +1347,7 @@ export default function Home() {
             <section className="ghost-plaza" aria-label="카톡 광장">
               <header><h3>카톡 광장</h3><span><i/>10분 후 사라져요</span></header>
               <div className="ghost-bubbles">
-                {ghostMoods.map((mood,index) => <div className={`ghost-bubble bubble-${index % 5}`} key={mood.id}><span>{mood.avatar}</span><b>{mood.text}</b></div>)}
+                {ghostMoods.map((mood,index) => <div className={`ghost-bubble level-${index} ${mood.id % 2 ? "side-left" : "side-right"}`} key={mood.id}><span>{mood.avatar}</span><b>{mood.text}</b></div>)}
               </div>
               <div className="ghost-mood-compose"><label><input value={ghostMoodDraft} onChange={event => setGhostMoodDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter") publishGhostMood(); }} placeholder="지금 감정을 우다다 남겨보세요"/><button type="button" aria-label="기분 이모티콘 추가" onClick={() => setGhostMoodDraft(current => `${current}🙂`)}><Smile/></button></label><button aria-label="광장에 기분 남기기" disabled={!ghostMoodDraft.trim()} onClick={publishGhostMood}>↑</button></div>
             </section>
