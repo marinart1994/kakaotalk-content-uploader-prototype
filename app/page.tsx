@@ -31,6 +31,7 @@ type LightPost = {
   poll?: boolean;
   quote?: boolean;
   series?: string[];
+  sticker?: number;
 };
 type Panel = "photo" | "photo-editor" | "video-editor" | "location" | "link" | "poll" | "quote" | "emoji" | "ai" | "publish" | "post-menu" | "success" | null;
 
@@ -255,6 +256,9 @@ export default function Home() {
   const [lightCategory, setLightCategory] = useState<LightCategory>("전체");
   const [lightPosts, setLightPosts] = useState<LightPost[]>(initialLightPosts);
   const [lightDraft, setLightDraft] = useState("");
+  const [lightSticker, setLightSticker] = useState<number | null>(null);
+  const [lightEmojiOpen, setLightEmojiOpen] = useState(false);
+  const [lightEmojiTab, setLightEmojiTab] = useState<"search" | "emoticon" | "mini" | "discover">("mini");
   const [likedLightPosts, setLikedLightPosts] = useState<Set<number>>(new Set());
   const [lightDetailOpen, setLightDetailOpen] = useState(false);
   const [lightDetailTool, setLightDetailTool] = useState<LightDetailTool>(null);
@@ -275,6 +279,8 @@ export default function Home() {
   const seriesEditorRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const savedEditorRangeRef = useRef<Range | null>(null);
   const selectedTextRangeRef = useRef<Range | null>(null);
+  const lightDraftEditorRef = useRef<HTMLDivElement | null>(null);
+  const lightDraftRangeRef = useRef<Range | null>(null);
   const nextSeriesId = useRef(1);
   const nextLightDetailSeriesId = useRef(1);
   const isComposingRef = useRef(false);
@@ -582,18 +588,80 @@ export default function Home() {
 
   const publishLightPost = () => {
     const text = lightDraft.trim();
-    if (!text) return;
+    if (!text && lightSticker === null) return;
     const category: Exclude<LightCategory, "전체"> = lightCategory === "전체" ? "일상" : lightCategory;
     setLightPosts(current => [{
-      id: Date.now(), author: "춘식크루", time: "방금", category, text,
+      id: Date.now(), author: "춘식크루", time: "방금", category, text: lightSticker === null ? text : "",
       likes: 0, comments: 0, avatar: "춘",
+      sticker: lightSticker ?? undefined,
     }, ...current]);
     setLightDraft("");
+    lightDraftEditorRef.current?.replaceChildren();
+    setLightSticker(null);
+    setLightEmojiOpen(false);
     setLightCategory("전체");
   };
 
+  const setLightDraftValue = (value: string) => {
+    setLightSticker(null);
+    setLightDraft(value);
+    const editor = lightDraftEditorRef.current;
+    if (!editor) return;
+    renderEditorValue(editor, value);
+    editor.focus();
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    lightDraftRangeRef.current = range.cloneRange();
+  };
+
+  const rememberLightDraftCaret = () => {
+    const editor = lightDraftEditorRef.current;
+    if (!editor) return;
+    const selection = window.getSelection();
+    if (selection?.rangeCount && editor.contains(selection.anchorNode)) {
+      lightDraftRangeRef.current = selection.getRangeAt(0).cloneRange();
+      return;
+    }
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    lightDraftRangeRef.current = range;
+  };
+
+  const insertLightMiniEmoticon = (index: number) => {
+    const editor = lightDraftEditorRef.current;
+    if (!editor) return;
+    const range = lightDraftRangeRef.current?.cloneRange() ?? document.createRange();
+    if (!lightDraftRangeRef.current || !editor.contains(range.commonAncestorContainer)) {
+      range.selectNodeContents(editor);
+      range.collapse(false);
+    }
+    const mini = createInlineMini(index);
+    range.deleteContents();
+    range.insertNode(mini);
+    range.setStartAfter(mini);
+    range.collapse(true);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    lightDraftRangeRef.current = range.cloneRange();
+    setLightSticker(null);
+    setLightDraft(serializeEditor(editor));
+  };
+
+  const selectLightSticker = (index: number) => {
+    setLightSticker(index);
+    setLightDraft("");
+    lightDraftEditorRef.current?.replaceChildren();
+    setLightEmojiOpen(false);
+  };
+
   const removeLightCharacter = () => {
-    setLightDraft(current => Array.from(current).slice(0, -1).join(""));
+    setLightDraftValue(Array.from(lightDraft).slice(0, -1).join(""));
   };
 
   const openLightDetailComposer = () => {
@@ -959,7 +1027,8 @@ export default function Home() {
                     <div><b>{post.author}</b><small>{post.time} · {post.category}</small></div>
                     <button aria-label="더보기"><MoreHorizontal/></button>
                   </div>
-                  {post.series?.length ? <div className="light-post-series">{[post.text, ...post.series].map((text,index) => <div key={`${post.id}-series-${index}`}><b>{index + 1}</b><p>{text}</p></div>)}</div> : <p>{post.text}</p>}
+                  {post.series?.length ? <div className="light-post-series">{[post.text, ...post.series].map((text,index) => <div key={`${post.id}-series-${index}`}><b>{index + 1}</b><p><RichTextContent value={text}/></p></div>)}</div> : post.text && <p><RichTextContent value={post.text}/></p>}
+                  {post.sticker !== undefined && <div className="light-post-sticker"><StickerSprite index={post.sticker}/></div>}
                   {post.image && <img className="light-post-image" src={post.image} alt={`${post.author}님의 글감 사진`}/>}
                   {post.location && <div className="light-post-location"><MapPin/>{post.location}</div>}
                   {post.link && <div className="light-post-link"><span><Link2/></span><div><b>같이 보고 싶은 링크</b><small>{post.link}</small></div><ChevronRight/></div>}
@@ -973,25 +1042,65 @@ export default function Home() {
                 </article>;
               })}
             </div>
-            <div className="light-compose">
+            <div className={`light-compose ${lightSticker !== null ? "has-sticker" : ""}`}>
+              {lightSticker !== null && <div className="light-sticker-attachment"><StickerSprite index={lightSticker}/><button aria-label="큰 이모티콘 삭제" onClick={() => setLightSticker(null)}><X/></button><small>이모티콘 1개</small></div>}
               <div className="light-input-row">
                 <button className="light-plus" aria-label="상세 글감 작성" onClick={openLightDetailComposer}><Plus/></button>
-                <div className="light-text-field"><input value={lightDraft} onChange={event => setLightDraft(event.target.value)} placeholder="지금 떠오른 글감을 남겨보세요"/><button type="button" aria-label="이모티콘" onClick={() => setLightDraft(current => `${current}🙂`)}><Smile/></button></div>
-                <button className="light-send" aria-label="전송" disabled={!lightDraft.trim()} onClick={publishLightPost}>↑</button>
+                <div className="light-text-field"><div
+                  ref={lightDraftEditorRef}
+                  className="light-text-editor"
+                  role="textbox"
+                  aria-label="가벼운 글감 입력"
+                  aria-multiline="true"
+                  data-placeholder="지금 떠오른 글감을 남겨보세요"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onCompositionStart={() => { isComposingRef.current = true; }}
+                  onCompositionEnd={event => { isComposingRef.current = false; setLightSticker(null); setLightDraft(serializeEditor(event.currentTarget)); rememberLightDraftCaret(); }}
+                  onInput={event => { if (!isComposingRef.current) { setLightSticker(null); setLightDraft(serializeEditor(event.currentTarget)); } }}
+                  onFocus={rememberLightDraftCaret}
+                  onMouseUp={rememberLightDraftCaret}
+                  onKeyUp={rememberLightDraftCaret}
+                /><button type="button" aria-label="이모티콘" onMouseDown={rememberLightDraftCaret} onClick={() => setLightEmojiOpen(true)}><Smile/></button></div>
+                <button className="light-send" aria-label="전송" disabled={!lightDraft.trim() && lightSticker === null} onClick={publishLightPost}>↑</button>
               </div>
               <div className="light-keyboard">
                 <div className="light-suggestions"><span>“갈나요?”</span><span>갈나요</span><span>갈나요ㅎㅎ</span></div>
                 {koreanKeyboardRows.map((row, rowIndex) => <div className={`light-key-row row-${rowIndex}`} key={row}>
                   {rowIndex === 2 && <button className="utility">⇧</button>}
-                  {[...row].map(key => <button key={key} onClick={() => setLightDraft(current => `${current}${key}`)}>{key}</button>)}
+                  {[...row].map(key => <button key={key} onClick={() => setLightDraftValue(`${lightDraft}${key}`)}>{key}</button>)}
                   {rowIndex === 2 && <button className="utility" onClick={removeLightCharacter}>⌫</button>}
                 </div>)}
                 <div className="light-key-row light-utility-row">
-                  <button>123</button><button onClick={() => setLightDraft(current => `${current}🙂`)}>☺</button><button className="light-space" onClick={() => setLightDraft(current => `${current} `)}>한글</button><button onClick={() => setLightDraft(current => `${current}\n`)}>↵</button>
+                  <button>123</button><button onClick={() => { rememberLightDraftCaret(); setLightEmojiOpen(true); }}>☺</button><button className="light-space" onClick={() => setLightDraftValue(`${lightDraft} `)}>한글</button><button onClick={() => setLightDraftValue(`${lightDraft}\n`)}>↵</button>
                 </div>
                 <div className="light-keyboard-foot"><Globe2/><Mic/></div>
               </div>
             </div>
+            {lightEmojiOpen && <div className="phone-overlay light-emoji-overlay" onMouseDown={() => setLightEmojiOpen(false)}>
+              <section className={`mobile-sheet panel-emoji light-emoji-sheet ${lightEmojiTab === "mini" ? "emoji-tab-mini" : ""}`} role="dialog" aria-modal="true" aria-label="채팅방 이모티콘 선택" onMouseDown={event => event.stopPropagation()}>
+                <div className="emoticon-picker">
+                  <div className="emoticon-handle"/>
+                  <div className="emoticon-main-tabs">
+                    <button className={lightEmojiTab === "search" ? "active" : ""} onClick={() => setLightEmojiTab("search")}>검색</button>
+                    <button className={lightEmojiTab === "emoticon" ? "active" : ""} onClick={() => setLightEmojiTab("emoticon")}>이모티콘</button>
+                    <button className={lightEmojiTab === "mini" ? "active" : ""} onClick={() => setLightEmojiTab("mini")}>미니</button>
+                    <button className={lightEmojiTab === "discover" ? "active" : ""} onClick={() => setLightEmojiTab("discover")}>발견</button>
+                    <button className="emoticon-store" aria-label="이모티콘 스토어"><ShoppingBag/></button>
+                  </div>
+                  <div className="emoticon-packs" aria-label="이모티콘 팩">
+                    {[0,1,4,10,22].map((index,packIndex) => <button key={index} className={packIndex === 0 ? "active" : ""} onClick={() => setLightEmojiTab("emoticon")}><StickerSprite index={index}/>{packIndex === 0 && <i/>}</button>)}
+                    <button aria-label="팩 추가"><Plus/></button><button aria-label="팩 설정"><Settings/></button><button aria-label="닫기" onClick={() => setLightEmojiOpen(false)}><X/></button>
+                  </div>
+                  <div className="emoticon-content">
+                    {lightEmojiTab === "search" && <><label className="emoticon-search"><Search/><input placeholder="이모티콘 검색" autoFocus/></label><div className="emoticon-title"><b>최근 사용</b></div><div className="sticker-grid compact">{stickerIndexes.slice(0,12).map(index => <button key={index} aria-label={`큰 이모티콘 ${index + 1} 선택`} onClick={() => selectLightSticker(index)}><StickerSprite index={index}/></button>)}</div></>}
+                    {lightEmojiTab === "emoticon" && <><div className="emoticon-title"><b>작은 회색 고양이 5</b><span>누가사 ›</span></div><div className="sticker-grid">{stickerIndexes.map(index => <button key={index} aria-label={`큰 이모티콘 ${index + 1} 선택`} onClick={() => selectLightSticker(index)}><StickerSprite index={index}/></button>)}</div><p className="mini-emoticon-hint">큰 이모티콘은 한 번에 한 개만 보낼 수 있어요.</p></>}
+                    {lightEmojiTab === "mini" && <><div className="emoticon-title"><b>핑크핑크 어피치</b><span>텍스트 옆에 자유롭게 붙여보세요 ›</span></div><div className="mini-emoticon-grid">{miniEmoticons.map(index => <button key={index} aria-label={`미니 이모티콘 ${index + 1} 삽입`} onClick={() => insertLightMiniEmoticon(index)}><MiniEmoticonSprite index={index}/></button>)}</div><p className="mini-emoticon-hint">미니 이모티콘은 글자 사이에 여러 개 넣을 수 있어요.</p><button className="friends-more">🐥 카카오프렌즈 더보기 <ChevronRight/></button></>}
+                    {lightEmojiTab === "discover" && <><div className="emoticon-title"><b>추천 미니 이모티콘</b><span>취향을 발견해요 ›</span></div><div className="discover-emoticons">{[[0,4,8,12],[2,7,13,18],[5,11,17,23],[6,15,21,29]].map((group,index) => <button key={index} onClick={() => setLightEmojiTab("emoticon")}>{group.map(sticker => <StickerSprite index={sticker} key={sticker}/>)}</button>)}</div></>}
+                  </div>
+                </div>
+              </section>
+            </div>}
           </div>
           {lightDetailOpen && <div className="light-detail-overlay">
             <StatusBar/>

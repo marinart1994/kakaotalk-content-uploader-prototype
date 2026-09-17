@@ -303,16 +303,28 @@ button { cursor:pointer; }
 .light-reactions button.active svg { fill:#ee6571; }
 .light-reactions i { color:#aab0b5; font-size:9px; font-style:normal; }
 .light-compose { position:absolute; left:0; right:0; bottom:0; height:350px; overflow:hidden; background:#dfe2e6; }
+.light-compose.has-sticker { overflow:visible; }
 .light-input-row { height:76px; display:grid; grid-template-columns:48px minmax(0,1fr) 48px; align-items:center; gap:7px; padding:9px 11px 10px; background:linear-gradient(90deg,#bff4df,#d8f8ec); }
 .light-plus,.light-send { width:45px; height:45px; display:grid; place-items:center; border:0; border-radius:50%; background:#fff; color:#101315; }
 .light-plus svg { width:25px; height:25px; stroke-width:1.8; }
 .light-send { background:#f5d83e; font-size:31px; font-weight:450; line-height:1; }
 .light-send:disabled { color:#a49c67; background:#e9dea3; cursor:default; }
 .light-text-field { height:45px; min-width:0; display:flex; align-items:center; overflow:hidden; border-radius:15px; background:rgba(255,255,255,.66); }
-.light-text-field input { min-width:0; flex:1; height:100%; border:0; outline:0; padding:0 5px 0 13px; background:transparent; color:#202428; font-size:11px; }
-.light-text-field input::placeholder { color:#94a09c; }
+.light-text-editor { min-width:0; flex:1; height:43px; overflow-y:auto; outline:0; padding:8px 5px 6px 13px; color:#202428; font-size:11px; line-height:27px; white-space:pre-wrap; scrollbar-width:none; caret-color:#208fd8; }
+.light-text-editor::-webkit-scrollbar { display:none; }
+.light-text-editor:empty::before { content:attr(data-placeholder); color:#94a09c; pointer-events:none; }
+.light-text-editor .inline-mini-emoticon { width:27px; height:27px; vertical-align:-9px; }
 .light-text-field button { width:42px; height:42px; display:grid; place-items:center; flex:0 0 42px; border:0; background:rgba(255,255,255,.33); color:#30383b; }
 .light-text-field svg { width:22px; height:22px; }
+.light-sticker-attachment { position:absolute; z-index:2; left:14px; bottom:350px; width:112px; height:112px; padding:6px; border:1px solid #e3e6e8; border-radius:16px; background:#fff; box-shadow:0 8px 24px rgba(31,36,40,.13); }
+.light-sticker-attachment>.sticker-sprite { width:100%; height:100%; }
+.light-sticker-attachment>button { position:absolute; right:-6px; top:-6px; width:24px; height:24px; display:grid; place-items:center; border:0; border-radius:50%; padding:0; background:#303438; color:#fff; }
+.light-sticker-attachment>button svg { width:13px; height:13px; }
+.light-sticker-attachment>small { position:absolute; left:10px; bottom:5px; padding:2px 5px; border-radius:8px; background:rgba(28,32,35,.66); color:#fff; font-size:7px; }
+.light-post-sticker { width:118px; height:118px; margin:7px 0 9px 46px; }
+.light-post-sticker .sticker-sprite { width:100%; height:100%; }
+.light-emoji-overlay { z-index:80; }
+.light-emoji-sheet { overflow:hidden; padding:0; }
 .light-keyboard { padding:0 6px; }
 .light-suggestions { height:43px; display:grid; grid-template-columns:repeat(3,1fr); align-items:center; text-align:center; color:#282d31; font-size:12px; }
 .light-suggestions span+span { border-left:1px solid #c7cbd0; }
