@@ -11,6 +11,7 @@ import {
 
 type View = "feed" | "composer";
 type MediaType = "photo" | "video";
+type MediaItem = { id: number; src: string; type: MediaType };
 type Panel = "photo" | "photo-editor" | "video-editor" | "location" | "link" | "poll" | "quote" | "emoji" | "ai" | "publish" | "success" | null;
 
 const photos = [
@@ -22,19 +23,19 @@ const photos = [
   "https://images.unsplash.com/photo-1524293581917-878a6d017c71?auto=format&fit=crop&w=900&q=85",
 ];
 
-const galleryItems: { src: string; type: MediaType }[] = [
-  { src: photos[0], type: "photo" },
-  { src: photos[1], type: "photo" },
-  { src: photos[2], type: "photo" },
-  { src: photos[3], type: "video" },
-  { src: photos[4], type: "photo" },
-  { src: photos[5], type: "photo" },
-  { src: photos[2], type: "video" },
-  { src: photos[0], type: "photo" },
-  { src: photos[4], type: "photo" },
-  { src: photos[5], type: "video" },
-  { src: photos[1], type: "photo" },
-  { src: photos[3], type: "photo" },
+const galleryItems: MediaItem[] = [
+  { id: 1, src: photos[0], type: "photo" },
+  { id: 2, src: photos[1], type: "photo" },
+  { id: 3, src: photos[2], type: "photo" },
+  { id: 4, src: photos[3], type: "video" },
+  { id: 5, src: photos[4], type: "photo" },
+  { id: 6, src: photos[5], type: "photo" },
+  { id: 7, src: photos[2], type: "video" },
+  { id: 8, src: photos[0], type: "photo" },
+  { id: 9, src: photos[4], type: "photo" },
+  { id: 10, src: photos[5], type: "video" },
+  { id: 11, src: photos[1], type: "photo" },
+  { id: 12, src: photos[3], type: "photo" },
 ];
 
 const quotePhotos = [
@@ -69,9 +70,9 @@ export default function Home() {
   const [view, setView] = useState<View>("feed");
   const [panel, setPanel] = useState<Panel>(null);
   const [copy, setCopy] = useState("");
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const [selectedMediaType, setSelectedMediaType] = useState<MediaType>("photo");
-  const [pendingMedia, setPendingMedia] = useState<{ src: string; type: MediaType } | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
+  const [pendingMedia, setPendingMedia] = useState<MediaItem[]>([]);
+  const [editingMedia, setEditingMedia] = useState<MediaItem | null>(null);
   const [photoEffect, setPhotoEffect] = useState<"ai" | "portrait">("ai");
   const [location, setLocation] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
@@ -128,9 +129,9 @@ export default function Home() {
 
   const startComposer = () => {
     setCopy("");
-    setSelectedPhoto(null);
-    setSelectedMediaType("photo");
-    setPendingMedia(null);
+    setSelectedMedia([]);
+    setPendingMedia([]);
+    setEditingMedia(null);
     setPhotoEffect("ai");
     setLocation(null);
     setLink(null);
@@ -171,14 +172,33 @@ export default function Home() {
   };
 
   const applySelectedMedia = () => {
-    if (!pendingMedia) return;
-    setSelectedPhoto(pendingMedia.src);
-    setSelectedMediaType(pendingMedia.type);
+    if (!pendingMedia.length) return;
+    setSelectedMedia(pendingMedia);
     setLink(null);
     setPoll(false);
     setQuotedPost(false);
     setPanel(null);
-    flash(pendingMedia.type === "video" ? "영상을 첨부했어요" : "사진을 첨부했어요");
+    flash(`미디어 ${pendingMedia.length}개를 첨부했어요`);
+  };
+
+  const openMediaPicker = () => {
+    setPendingMedia(selectedMedia);
+    setEditingMedia(null);
+    setPanel("photo");
+  };
+
+  const chooseMedia = (item: MediaItem) => {
+    const existingIndex = pendingMedia.findIndex(media => media.id === item.id);
+    if (existingIndex >= 0) {
+      setEditingMedia(item);
+      setPanel(item.type === "video" ? "video-editor" : "photo-editor");
+      return;
+    }
+    if (pendingMedia.length >= 10) {
+      flash("미디어는 최대 10개까지 선택할 수 있어요");
+      return;
+    }
+    setPendingMedia(current => [...current, item]);
   };
 
   return (
@@ -205,7 +225,7 @@ export default function Home() {
             {published && <article className="k-post fresh-post">
               <div className="post-head"><Avatar/><span><b>춘식크루</b><small>방금 전 · 판교</small></span><button aria-label="더보기"><MoreHorizontal/></button></div>
               {copy && <p className={spoiler ? "spoiler-copy" : ""}>{copy}</p>}
-              {selectedPhoto && <div className="post-media"><img className="post-image" src={selectedPhoto} alt={selectedMediaType === "video" ? "새로 올린 영상" : "새로 올린 사진"}/>{selectedMediaType === "video" && <span><Video/> 영상</span>}</div>}
+              {selectedMedia.length > 0 && <div className={`post-media-grid count-${Math.min(selectedMedia.length, 4)}`}>{selectedMedia.map(media => <div className="post-media" key={media.id}><img className="post-image" src={media.src} alt={media.type === "video" ? "새로 올린 영상" : "새로 올린 사진"}/>{media.type === "video" && <span><Video/> 영상</span>}</div>)}</div>}
               {location && <div className="post-location"><MapPin/> {location}</div>}
               {link && <div className="post-link"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>{link}</small></div></div>}
               {poll && <div className="post-poll"><b>다음 영화 후기 주제는?</b><button>오디세이 세계관</button><button>고대 신화 속 영웅</button></div>}
@@ -229,7 +249,7 @@ export default function Home() {
           <button className="floating-create" aria-label="새 콘텐츠 만들기" onClick={startComposer}><Plus/></button>
           <nav className="bottom-nav" aria-label="카카오톡 탭"><button aria-label="친구"><UserRound/></button><button aria-label="채팅"><MessageCircle/><b>40</b></button><button className="active" aria-label="피드"><span><Smile/></span></button><button aria-label="쇼핑"><ShoppingBag/></button><button aria-label="더보기"><MoreHorizontal/></button></nav>
         </div> : <div className="screen composer-screen">
-          <header className="composer-top"><button className="close-compose" aria-label="작성 취소" onClick={resetComposer}><X/></button><span/><button className="draft-icon" aria-label="발행 옵션" onClick={() => setPanel("publish")}><SlidersHorizontal/></button><button className="upload-button" disabled={!copy.trim() && !selectedPhoto} onClick={() => setPanel("success")}>올리기</button></header>
+          <header className="composer-top"><button className="close-compose" aria-label="작성 취소" onClick={resetComposer}><X/></button><span/><button className="draft-icon" aria-label="발행 옵션" onClick={() => setPanel("publish")}><SlidersHorizontal/></button><button className="upload-button" disabled={!copy.trim() && selectedMedia.length === 0} onClick={() => setPanel("success")}>올리기</button></header>
           <div className="composer-scroll">
             <article className="editor-block">
               <div className="editor-line"><Avatar/><i/><button aria-label="콘텐츠 추가"><Plus/></button></div>
@@ -253,7 +273,14 @@ export default function Home() {
                 />
                 {showSelectionMenu && <div className="selection-tools" style={{ left: selectionMenuPosition.left, top: selectionMenuPosition.top }}><button onMouseDown={event => event.preventDefault()} onClick={() => flash("내용을 오려냈어요")}>오려두기</button><button onMouseDown={event => event.preventDefault()} onClick={() => navigator.clipboard?.writeText(window.getSelection()?.toString() || copy)}>복사하기</button><button onMouseDown={event => event.preventDefault()} onClick={() => flash("클립보드 내용을 붙여넣었어요")}>붙여넣기</button><button onMouseDown={event => event.preventDefault()} className={spoiler ? "active" : ""} onClick={() => setSpoiler(!spoiler)}>스포방지로 표시</button><button><ChevronRight/></button></div>}
                 {quotedPost && <QuotedPostCard removable onRemove={() => setQuotedPost(false)}/>}
-                {selectedPhoto && <div className={`editor-photo ${selectedMediaType}`}><img src={selectedPhoto} alt={selectedMediaType === "video" ? "첨부한 영상" : "첨부한 사진"}/><span>{selectedMediaType === "video" ? <><Video/>영상</> : "사진"}</span><button onClick={() => { setSelectedPhoto(null); setPendingMedia(null); }}>×</button></div>}
+                {selectedMedia.length > 0 && <div className="editor-media-grid">
+                  {selectedMedia.map(media => <div className={`editor-photo ${media.type}`} key={media.id}>
+                    <button className="media-edit" aria-label={`${media.type === "video" ? "영상" : "사진"} 편집`} onClick={() => { setPendingMedia(selectedMedia); setEditingMedia(media); setPanel(media.type === "video" ? "video-editor" : "photo-editor"); }}><img src={media.src} alt={media.type === "video" ? "첨부한 영상" : "첨부한 사진"}/><span>편집</span></button>
+                    {media.type === "video" && <em><Video/>{media.id % 2 ? "0:05" : "0:04"}</em>}
+                    <button className="media-remove" aria-label="첨부 미디어 삭제" onClick={() => setSelectedMedia(current => current.filter(selected => selected.id !== media.id))}><X/></button>
+                  </div>)}
+                  {selectedMedia.length < 10 && <button className="editor-media-add" aria-label="미디어 더 추가" onClick={openMediaPicker}><Plus/></button>}
+                </div>}
                 {location && <div className="editor-attachment"><span>⌖</span><div><small>위치</small><b>{location}</b></div><button onClick={() => setLocation(null)}>×</button></div>}
                 {link && <div className="editor-attachment"><span>↗</span><div><small>링크</small><b>{link}</b></div><button onClick={() => setLink(null)}>×</button></div>}
                 {poll && <div className="mini-poll"><b>다음 영화 후기 주제는?</b><span>오디세이 세계관</span><span>고대 신화 속 영웅</span></div>}
@@ -270,11 +297,11 @@ export default function Home() {
           </div>
           <div className="composer-bottom">
             <div className="tool-bar">
-              <button aria-label="사진 또는 영상 추가" onClick={() => { setPendingMedia(selectedPhoto ? { src: selectedPhoto, type: selectedMediaType } : null); setPanel("photo"); }}><ImageIcon/></button>
+              <button aria-label="사진 또는 영상 추가" onClick={openMediaPicker}><ImageIcon/></button>
               <button aria-label="위치 추가" onClick={() => setPanel("location")}><MapPin/></button>
-              <button aria-label="링크 추가" disabled={!!selectedPhoto} onClick={() => setPanel("link")}><Link2/></button>
-              <button aria-label="투표 추가" disabled={!!selectedPhoto} onClick={() => setPanel("poll")}><SquareCheckBig/></button>
-              <button className="quote-tool" aria-label="게시물 인용" disabled={!!selectedPhoto} onClick={() => setPanel("quote")}><MessageSquareQuote/></button>
+              <button aria-label="링크 추가" disabled={selectedMedia.length > 0} onClick={() => setPanel("link")}><Link2/></button>
+              <button aria-label="투표 추가" disabled={selectedMedia.length > 0} onClick={() => setPanel("poll")}><SquareCheckBig/></button>
+              <button className="quote-tool" aria-label="게시물 인용" disabled={selectedMedia.length > 0} onClick={() => setPanel("quote")}><MessageSquareQuote/></button>
               <button aria-label="이모티콘" onClick={() => setPanel("emoji")}><Smile/></button>
               <i/>
               <button className="ai-button" aria-label="AI 추천" onClick={() => setPanel("ai")}><Sparkles/><b>AI</b></button>
@@ -291,28 +318,31 @@ export default function Home() {
         {panel === "photo" && <div className="phone-overlay solid photo-picker-overlay">
           <section className="photo-picker-screen" role="dialog" aria-modal="true" aria-label="사진 또는 영상 선택">
             <StatusBar/>
-            <header><button aria-label="사진 선택 취소" onClick={() => { setPendingMedia(selectedPhoto ? { src: selectedPhoto, type: selectedMediaType } : null); setPanel(null); }}><X/></button><b>최근 항목⌄</b><button className={pendingMedia ? "ready" : ""} disabled={!pendingMedia} onClick={applySelectedMedia}>{pendingMedia ? "1 선택" : "확인"}</button></header>
-            <div className="gallery-grid">
+            <header><button aria-label="사진 선택 취소" onClick={() => { setPendingMedia(selectedMedia); setEditingMedia(null); setPanel(null); }}><X/></button><b>최근 항목⌄</b><button className={pendingMedia.length ? "ready" : ""} disabled={!pendingMedia.length} onClick={applySelectedMedia}>{pendingMedia.length ? `${pendingMedia.length} 확인` : "확인"}</button></header>
+            {pendingMedia.length > 0 && <div className="selection-strip" aria-label={`선택한 미디어 ${pendingMedia.length}개`}>
+              {pendingMedia.map((media,index) => <div key={media.id}><img src={media.src} alt={`선택 ${index + 1}`}/><b>{index + 1}</b><button aria-label={`선택 ${index + 1} 삭제`} onClick={() => setPendingMedia(current => current.filter(selected => selected.id !== media.id))}><X/></button></div>)}
+            </div>}
+            <div className={`gallery-grid ${pendingMedia.length ? "has-selection" : ""}`}>
               <button className="camera-tile" aria-label="카메라 열기" onClick={() => flash("카메라 시연입니다")}><ImageIcon/><small>카메라</small></button>
               {galleryItems.map((item,index) => {
-                const selected = pendingMedia?.src === item.src && pendingMedia.type === item.type;
-                return <button key={`${item.src}-${index}`} className={selected ? "selected" : ""} aria-label={`${item.type === "video" ? "영상" : "사진"} ${index + 1} 선택`} onClick={() => { setPendingMedia(item); setPanel(item.type === "video" ? "video-editor" : "photo-editor"); }}>
+                const selectedIndex = pendingMedia.findIndex(media => media.id === item.id);
+                return <button key={item.id} className={selectedIndex >= 0 ? "selected" : ""} aria-label={`${item.type === "video" ? "영상" : "사진"} ${index + 1} 선택`} onClick={() => chooseMedia(item)}>
                   <img src={item.src} alt=""/>
                   {item.type === "video" && <span className="gallery-video"><Video/>0:05</span>}
-                  <i>{selected ? "1" : ""}</i>
+                  <i>{selectedIndex >= 0 ? selectedIndex + 1 : ""}</i>
                 </button>;
               })}
             </div>
           </section>
         </div>}
 
-        {(panel === "photo-editor" || panel === "video-editor") && pendingMedia && <div className="phone-overlay solid media-editor-overlay">
+        {(panel === "photo-editor" || panel === "video-editor") && editingMedia && <div className="phone-overlay solid media-editor-overlay">
           <section className={`media-editor-screen ${panel === "video-editor" ? "video-mode" : "photo-mode"}`} role="dialog" aria-modal="true" aria-label={panel === "video-editor" ? "영상 편집" : "사진 편집"}>
             <StatusBar/>
             <header><button aria-label="갤러리로 돌아가기" onClick={() => setPanel("photo")}>‹</button><b>{panel === "video-editor" ? "영상 편집" : "사진 편집"}</b><button onClick={() => setPanel("photo")}>확인</button></header>
-            <div className="media-editor-canvas"><img src={pendingMedia.src} alt="편집 중인 미디어"/>{panel === "video-editor" && <button className="video-play" aria-label="영상 재생">▶</button>}</div>
-            {panel === "photo-editor" ? <div className="photo-edit-card"><small>AI 편집</small><p>사진을 더 자연스럽게 정리해보세요.</p><div><button className={photoEffect === "ai" ? "active" : ""} onClick={() => setPhotoEffect("ai")}><Sparkles/>배경 인물 지우기</button><button className={photoEffect === "portrait" ? "active" : ""} onClick={() => setPhotoEffect("portrait")}><UserRound/>추천 인물 필터</button></div></div> : <div className="video-edit-panel"><div className="video-time">0:00 / 0:05</div><div className="video-timeline">{[0,1,2,3,4].map(frame => <img key={frame} src={pendingMedia.src} alt=""/>)}<i/></div><button><Plus/> 오디오 추가</button></div>}
-            <footer className="media-editor-tools"><button>×</button><button><Sparkles/></button><button>□</button><button>T</button><button>◎</button><button>〰</button><button aria-label="편집 적용" onClick={() => setPanel("photo")}><Check/></button></footer>
+            <div className="media-editor-canvas"><img src={editingMedia.src} alt="편집 중인 미디어"/>{panel === "video-editor" && <button className="video-play" aria-label="영상 재생">▶</button>}</div>
+            {panel === "photo-editor" ? <div className="photo-edit-card"><small>AI 편집</small><p>사진을 더 자연스럽게 정리해보세요.</p><div><button className={photoEffect === "ai" ? "active" : ""} onClick={() => setPhotoEffect("ai")}><Sparkles/>배경 인물 지우기</button><button className={photoEffect === "portrait" ? "active" : ""} onClick={() => setPhotoEffect("portrait")}><UserRound/>추천 인물 필터</button></div></div> : <div className="video-edit-panel"><div className="video-time">0:00 / 0:05</div><div className="video-timeline">{[0,1,2,3,4].map(frame => <img key={frame} src={editingMedia.src} alt=""/>)}<i/></div><button><Plus/> 오디오 추가</button></div>}
+            <footer className="media-editor-tools"><button aria-label="현재 미디어 선택 취소" onClick={() => { setPendingMedia(current => current.filter(media => media.id !== editingMedia.id)); setEditingMedia(null); setPanel("photo"); }}>×</button><button><Sparkles/></button><button>□</button><button>T</button><button>◎</button><button>〰</button><button aria-label="편집 적용" onClick={() => setPanel("photo")}><Check/></button></footer>
           </section>
         </div>}
 
