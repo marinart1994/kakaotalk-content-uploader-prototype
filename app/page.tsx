@@ -155,6 +155,15 @@ function StatusBar() {
   return <div className="status-bar"><b>9:41</b><span className="island"/><span className="status-icons"><Signal/><Wifi/><BatteryMedium/></span></div>;
 }
 
+function DraftSaveDialog({ onCancel, onSave }: { onCancel: () => void; onSave: () => void }) {
+  return <div className="draft-save-backdrop" role="presentation">
+    <section className="draft-save-dialog" role="alertdialog" aria-modal="true" aria-labelledby="draft-save-title">
+      <p id="draft-save-title">작성 중인 글을 저장할까요? 저장하면 다음에 이어서 작성할 수 있어요.</p>
+      <div><button onClick={onCancel}>취소</button><button onClick={onSave}>저장</button></div>
+    </section>
+  </div>;
+}
+
 function ActionRow({ textPost = false }: { textPost?: boolean }) {
   return <div className="action-row"><button aria-label="댓글"><MessageCircle/></button><button aria-label="리포스트"><Repeat2/><small>{textPost ? "15" : "8"}</small></button><button aria-label="좋아요"><Heart/><small>{textPost ? "649" : "215"}</small></button><button aria-label="조회수"><BarChart3/><small>{textPost ? "3.1만" : "4.2천"}</small></button><span/><button aria-label="저장"><Bookmark/></button><button aria-label="공유"><Share2/></button></div>;
 }
@@ -205,6 +214,9 @@ export default function Home() {
   const [lightDetailLink, setLightDetailLink] = useState<string | null>(null);
   const [lightDetailPoll, setLightDetailPoll] = useState(false);
   const [lightDetailQuote, setLightDetailQuote] = useState(false);
+  const [exitPrompt, setExitPrompt] = useState<"full" | "light" | null>(null);
+  const [fullDraftSaved, setFullDraftSaved] = useState(false);
+  const [lightDetailDraftSaved, setLightDetailDraftSaved] = useState(false);
   const selectionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const editorBodyRef = useRef<HTMLDivElement | null>(null);
@@ -298,9 +310,16 @@ export default function Home() {
   const resetComposer = () => {
     setView("feed");
     setPanel(null);
+    setExitPrompt(null);
   };
 
   const startComposer = () => {
+    if (fullDraftSaved) {
+      setFullDraftSaved(false);
+      setExitPrompt(null);
+      setView("composer");
+      return;
+    }
     setCopy("");
     setSeriesItems([]);
     setActiveSeriesId(0);
@@ -324,6 +343,16 @@ export default function Home() {
     setShowSelectionMenu(false);
     savedEditorRangeRef.current = null;
     setView("composer");
+  };
+
+  const requestComposerClose = () => {
+    if (hasComposerContent) setExitPrompt("full");
+    else resetComposer();
+  };
+
+  const saveFullDraft = () => {
+    setFullDraftSaved(true);
+    resetComposer();
   };
 
   const addSeriesContent = () => {
@@ -357,7 +386,21 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (view === "composer") requestAnimationFrame(() => editorRef.current?.focus());
+    if (view !== "composer") return;
+    requestAnimationFrame(() => {
+      const rootEditor = seriesEditorRefs.current.get(0);
+      if (rootEditor) renderEditorValue(rootEditor, copy);
+      seriesItems.forEach(item => {
+        const editor = seriesEditorRefs.current.get(item.id);
+        if (editor) renderEditorValue(editor, item.text);
+      });
+      const activeEditor = seriesEditorRefs.current.get(activeSeriesId) ?? rootEditor;
+      if (activeEditor) {
+        editorRef.current = activeEditor;
+        editorBodyRef.current = activeEditor.parentElement as HTMLDivElement;
+        activeEditor.focus();
+      }
+    });
   }, [view]);
 
   const handleEditorSelection = () => {
@@ -469,6 +512,13 @@ export default function Home() {
   };
 
   const openLightDetailComposer = () => {
+    if (lightDetailDraftSaved) {
+      setLightDetailDraftSaved(false);
+      setExitPrompt(null);
+      setLightDetailTool(null);
+      setLightDetailOpen(true);
+      return;
+    }
     setLightDetailText("");
     setLightDetailPhoto(null);
     setLightDetailLocation(null);
@@ -481,7 +531,18 @@ export default function Home() {
 
   const closeLightDetailComposer = () => {
     setLightDetailTool(null);
+    setExitPrompt(null);
     setLightDetailOpen(false);
+  };
+
+  const requestLightDetailClose = () => {
+    if (hasLightDetailContent) setExitPrompt("light");
+    else closeLightDetailComposer();
+  };
+
+  const saveLightDetailDraft = () => {
+    setLightDetailDraftSaved(true);
+    closeLightDetailComposer();
   };
 
   const publishLightDetailPost = () => {
@@ -506,6 +567,7 @@ export default function Home() {
       quote: lightDetailQuote || undefined,
     }, ...current]);
     setLightCategory("전체");
+    setLightDetailDraftSaved(false);
     closeLightDetailComposer();
   };
 
@@ -564,7 +626,7 @@ export default function Home() {
           <button className="floating-create" aria-label="새 콘텐츠 만들기" onClick={startComposer}><Plus/></button>
           <nav className="bottom-nav" aria-label="카카오톡 탭"><button aria-label="친구"><UserRound/></button><button aria-label="채팅"><MessageCircle/><b>40</b></button><button className="active" aria-label="피드"><span><Smile/></span></button><button aria-label="쇼핑"><ShoppingBag/></button><button aria-label="더보기"><MoreHorizontal/></button></nav>
         </div> : <div className="screen composer-screen">
-          <header className="composer-top"><button className="close-compose" aria-label="작성 취소" onClick={resetComposer}><X/></button><span/><button className="draft-icon" aria-label="발행 옵션" onClick={() => setPanel("publish")}><SlidersHorizontal/></button><button className="upload-button" disabled={!hasComposerContent} onClick={() => setPanel("success")}>{seriesCount > 1 ? `${seriesCount}개 올리기` : "올리기"}</button></header>
+          <header className="composer-top"><button className="close-compose" aria-label="작성 취소" onClick={requestComposerClose}><X/></button><span/><button className="draft-icon" aria-label="발행 옵션" onClick={() => setPanel("publish")}><SlidersHorizontal/></button><button className="upload-button" disabled={!hasComposerContent} onClick={() => setPanel("success")}>{seriesCount > 1 ? `${seriesCount}개 올리기` : "올리기"}</button></header>
           <div className="composer-scroll">
             <article className="editor-block">
               <div className="editor-line"><Avatar/><small>1</small><i/></div>
@@ -750,10 +812,11 @@ export default function Home() {
             {panel === "ai" && <><div className="ai-head"><span><Sparkles/></span><div><h3>AI 추천 주제</h3><p>작성한 내용을 바탕으로 추천했어요. 하나만 선택할 수 있어요.</p></div></div><div className="ai-topics">{topicSuggestions.map(topic => <button key={topic} className={selectedTopic === topic ? "selected" : ""} onClick={() => { setSelectedTopic(topic); setTopicDraft(topic); }}>#{topic}<span>{selectedTopic === topic ? "✓" : "+"}</span></button>)}</div><button className="sheet-primary" onClick={() => setPanel(null)}>추천 주제 적용</button></>}
             {panel === "publish" && <><h3>발행 옵션</h3><p className="sheet-lead">콘텐츠를 누구에게 보여줄지 선택해주세요.</p><div className="publish-options"><div><b>공개 여부</b><span><button className="active">전체</button><button>팔로워</button></span></div><div><b>댓글 작성 대상</b><span><button className="active">전체</button><button>팔로워</button></span></div><label><span><b>리포스트 및 인용 허용</b><small>다른 사람이 콘텐츠를 공유할 수 있어요</small></span><input type="checkbox" defaultChecked/></label><label><span><b>AI 관련 표시</b><small>추천 기능을 사용한 콘텐츠로 표시해요</small></span><input type="checkbox" defaultChecked/></label></div><button className="sheet-primary publish-now" onClick={() => setPanel("success")}>피드에 올리기</button></>}
             {panel === "post-menu" && <><h3>게시물 관리</h3><button className="delete-post-action" onClick={() => { setPublished(false); setPanel(null); flash("게시물을 삭제했어요"); }}><span><Trash2/></span><div><b>삭제하기</b><small>이 게시물을 피드에서 삭제합니다</small></div><ChevronRight/></button></>}
-            {panel === "success" && <div className="success-panel"><span>✓</span><small>PUBLISHED</small><h3>피드에 올렸어요!</h3><p>작성한 콘텐츠가 카카오톡 3탭에<br/>새로운 이야기로 추가됐습니다.</p><button onClick={() => {setPublished(true);setPanel(null);setView("feed");flash("콘텐츠가 발행됐어요");}}>피드에서 보기</button></div>}
+            {panel === "success" && <div className="success-panel"><span>✓</span><small>PUBLISHED</small><h3>피드에 올렸어요!</h3><p>작성한 콘텐츠가 카카오톡 3탭에<br/>새로운 이야기로 추가됐습니다.</p><button onClick={() => {setPublished(true);setFullDraftSaved(false);setPanel(null);setView("feed");flash("콘텐츠가 발행됐어요");}}>피드에서 보기</button></div>}
           </section>
         </div>}
 
+        {exitPrompt === "full" && <DraftSaveDialog onCancel={() => setExitPrompt(null)} onSave={saveFullDraft}/>}
         {toast && <div className="mobile-toast">✓ {toast}</div>}
         <div className="home-indicator"/>
       </section>
@@ -825,7 +888,7 @@ export default function Home() {
           {lightDetailOpen && <div className="light-detail-overlay">
             <StatusBar/>
             <div className="screen composer-screen light-detail-screen">
-              <header className="composer-top"><button className="close-compose" aria-label="상세 작성 닫기" onClick={closeLightDetailComposer}><X/></button><span/><button className="draft-icon" aria-label="작성 옵션"><SlidersHorizontal/></button><button className="upload-button" disabled={!hasLightDetailContent} onClick={publishLightDetailPost}>올리기</button></header>
+              <header className="composer-top"><button className="close-compose" aria-label="상세 작성 닫기" onClick={requestLightDetailClose}><X/></button><span/><button className="draft-icon" aria-label="작성 옵션"><SlidersHorizontal/></button><button className="upload-button" disabled={!hasLightDetailContent} onClick={publishLightDetailPost}>올리기</button></header>
               <div className="composer-scroll light-detail-scroll">
                 <article className="editor-block">
                   <div className="editor-line"><Avatar/><small>1</small><i/></div>
@@ -870,6 +933,7 @@ export default function Home() {
                 {lightDetailTool === "ai" && <><div className="ai-head"><span><Sparkles/></span><div><h3>AI 글감 추천</h3><p>지금 가볍게 나누기 좋은 주제예요.</p></div></div><div className="ai-topics">{["오늘 가장 기억에 남은 순간", "요즘 나를 웃게 한 것", "누군가에게 묻고 싶은 고민"].map(topic => <button key={topic} onClick={() => { setLightDetailText(current => `${current}${current ? "\n" : ""}${topic}`); setLightDetailTool(null); }}>#{topic}<span>＋</span></button>)}</div></>}
               </section>
             </div>}
+            {exitPrompt === "light" && <DraftSaveDialog onCancel={() => setExitPrompt(null)} onSave={saveLightDetailDraft}/>}
             <div className="home-indicator"/>
           </div>}
           <div className="home-indicator"/>
