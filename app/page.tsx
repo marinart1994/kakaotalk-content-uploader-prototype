@@ -852,7 +852,7 @@ export default function Home() {
                   </div>)}
                   {selectedMedia.length < 10 && <button className="editor-media-add" aria-label="미디어 더 추가" onClick={() => openMediaPicker(0)}><Plus/></button>}
                 </div>}
-                {location && <div className="editor-attachment"><span>⌖</span><div><small>위치</small><b>{location}</b></div><button onClick={() => setLocation(null)}>×</button></div>}
+                {location && <button className="editor-location-chip" onClick={() => setPanel("location")}><MapPin/><span>{location}</span></button>}
                 {link && <div className="editor-attachment"><span>↗</span><div><small>링크</small><b>{link}</b></div><button onClick={() => setLink(null)}>×</button></div>}
                 {poll && <div className="mini-poll"><b>다음 영화 후기 주제는?</b><span>오디세이 세계관</span><span>고대 신화 속 영웅</span></div>}
                 {combinedCopy && <div className="recommended">
@@ -978,7 +978,7 @@ export default function Home() {
         {panel && panel !== "quote" && panel !== "photo" && panel !== "photo-editor" && panel !== "video-editor" && <div className={`phone-overlay ${panel === "success" ? "solid" : ""} ${postDetailOpen ? "above-detail" : ""}`} onMouseDown={() => panel !== "success" && setPanel(null)}>
           <section className={`mobile-sheet panel-${panel} ${panel === "emoji" ? `emoji-tab-${emojiTab}` : ""}`} role="dialog" aria-modal="true" aria-label="추가 설정" onMouseDown={event => event.stopPropagation()}>
             {panel !== "success" && panel !== "emoji" && <><div className="sheet-handle"/><button className="sheet-close" aria-label="닫기" onClick={() => setPanel(null)}><X/></button></>}
-            {panel === "location" && <><h3>위치</h3><label className="sheet-search"><Search/><input placeholder="장소 검색" autoFocus/></label><div className="place-list">{["Sydney Opera House","판교역","Darling Harbour","The Rocks, Sydney"].map(place => <button key={place} onClick={() => {setLocation(place);setPanel(null);}}><span><MapPin/></span><div><b>{place}</b><small>추천 위치</small></div><i><Plus/></i></button>)}</div></>}
+            {panel === "location" && <><h3>위치</h3><label className="sheet-search"><Search/><input placeholder="장소 검색" autoFocus/></label><p className="location-privacy-note">정확한 주소는 숨기고 동네 단위로만 표시해요.</p><div className="place-list">{["시드니","서울 강남구 개포동","양재천 산책로","대모산","구룡산 둘레길"].map(place => <button key={place} onClick={() => {setLocation(place);setPanel(null);}}><span><MapPin/></span><div><b>{place}</b><small>추천 위치 · 상세 주소 숨김</small></div><i><Plus/></i></button>)}</div>{location && <button className="remove-location-link" onClick={() => { setLocation(null); setPanel(null); }}>등록한 위치 삭제</button>}</>}
             {panel === "link" && <><h3>링크</h3><label className="sheet-input">URL 입력<input defaultValue="https://www.sydney.com/" autoFocus/></label><div className="link-preview"><span><Link2/></span><div><b>시드니 여행 공식 가이드</b><small>sydney.com</small></div></div><button className="sheet-primary" onClick={() => {setLink("https://www.sydney.com/");setPanel(null);}}>링크 추가</button></>}
             {panel === "poll" && <><h3>투표</h3><label className="sheet-input">투표 제목<input defaultValue="다음 영화 후기 주제는?"/></label><label className="sheet-input">선택지 1<input defaultValue="오디세이 세계관"/></label><label className="sheet-input">선택지 2<input defaultValue="고대 신화 속 영웅"/></label><button className="sheet-primary" onClick={() => {setPoll(true);setPanel(null);}}>투표 만들기</button></>}
             {panel === "emoji" && <div className="emoticon-picker">
@@ -1164,7 +1164,7 @@ export default function Home() {
                     <b>춘식크루</b>
                     <textarea aria-label="상세 글감 내용" value={lightDetailText} autoFocus placeholder="더 자세한 이야기를 적어보세요" onFocus={() => setLightDetailActiveSeriesId(0)} onChange={event => setLightDetailText(event.target.value)}/>
                     {lightDetailPhoto && <div className="light-detail-media"><img src={lightDetailPhoto} alt="첨부한 사진"/><button aria-label="사진 삭제" onClick={() => setLightDetailPhoto(null)}><X/></button></div>}
-                    {lightDetailLocation && <div className="editor-attachment"><span><MapPin/></span><div><small>위치</small><b>{lightDetailLocation}</b></div><button onClick={() => setLightDetailLocation(null)}>×</button></div>}
+                    {lightDetailLocation && <button className="editor-location-chip" onClick={() => setLightDetailTool("location")}><MapPin/><span>{lightDetailLocation}</span></button>}
                     {lightDetailLink && <div className="editor-attachment"><span><Link2/></span><div><small>링크</small><b>{lightDetailLink}</b></div><button onClick={() => setLightDetailLink(null)}>×</button></div>}
                     {lightDetailPoll && <div className="mini-poll"><b>오늘의 선택은?</b><span>천천히 더 생각해보기</span><span>지금 바로 도전하기</span><button onClick={() => setLightDetailPoll(false)}>투표 삭제</button></div>}
                     {lightDetailQuote && <div className="light-detail-quote-preview"><MessageSquareQuote/><div><b>인용한 글</b><p>오늘 하루 중 가장 좋았던 순간은 언제였나요?</p></div><button onClick={() => setLightDetailQuote(false)}><X/></button></div>}
