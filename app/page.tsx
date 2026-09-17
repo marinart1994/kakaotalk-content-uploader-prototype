@@ -13,6 +13,7 @@ type View = "feed" | "composer";
 type MediaType = "photo" | "video";
 type MediaItem = { id: number; src: string; type: MediaType };
 type SeriesItem = { id: number; text: string; media: MediaItem[] };
+type LightDetailSeriesItem = { id: number; text: string };
 type LightCategory = "전체" | "고민" | "일상" | "질문";
 type LightDetailTool = "photo" | "location" | "link" | "poll" | "quote" | "ai" | null;
 type LightPost = {
@@ -29,6 +30,7 @@ type LightPost = {
   link?: string;
   poll?: boolean;
   quote?: boolean;
+  series?: string[];
 };
 type Panel = "photo" | "photo-editor" | "video-editor" | "location" | "link" | "poll" | "quote" | "emoji" | "ai" | "publish" | "post-menu" | "success" | null;
 
@@ -262,6 +264,8 @@ export default function Home() {
   const [lightDetailLink, setLightDetailLink] = useState<string | null>(null);
   const [lightDetailPoll, setLightDetailPoll] = useState(false);
   const [lightDetailQuote, setLightDetailQuote] = useState(false);
+  const [lightDetailSeries, setLightDetailSeries] = useState<LightDetailSeriesItem[]>([]);
+  const [lightDetailActiveSeriesId, setLightDetailActiveSeriesId] = useState(0);
   const [exitPrompt, setExitPrompt] = useState<"full" | "light" | null>(null);
   const [fullDraftSaved, setFullDraftSaved] = useState(false);
   const [lightDetailDraftSaved, setLightDetailDraftSaved] = useState(false);
@@ -272,6 +276,7 @@ export default function Home() {
   const savedEditorRangeRef = useRef<Range | null>(null);
   const selectedTextRangeRef = useRef<Range | null>(null);
   const nextSeriesId = useRef(1);
+  const nextLightDetailSeriesId = useRef(1);
   const isComposingRef = useRef(false);
 
   const combinedCopy = [copy, ...seriesItems.map(item => item.text)].filter(Boolean).join("\n\n");
@@ -282,7 +287,9 @@ export default function Home() {
   const lastSeriesText = seriesItems.length ? seriesItems[seriesItems.length - 1].text : copy;
   const canAddSeries = Boolean(lastSeriesText.trim());
   const hasComposerContent = Boolean(copy.trim() || selectedMedia.length || selectedSticker !== null || seriesItems.some(item => item.text.trim() || item.media.length));
-  const hasLightDetailContent = Boolean(lightDetailText.trim() || lightDetailPhoto || lightDetailLocation || lightDetailLink || lightDetailPoll || lightDetailQuote);
+  const hasLightDetailContent = Boolean(lightDetailText.trim() || lightDetailPhoto || lightDetailLocation || lightDetailLink || lightDetailPoll || lightDetailQuote || lightDetailSeries.some(item => item.text.trim()));
+  const lastLightDetailText = lightDetailSeries.length ? lightDetailSeries[lightDetailSeries.length - 1].text : lightDetailText;
+  const canAddLightDetailSeries = Boolean(lastLightDetailText.trim());
 
   const topicSuggestions = combinedCopy.includes("오디세이") || combinedCopy.includes("신화") || combinedCopy.includes("영화")
     ? ["오디세이", "고대 신화", "영화 후기"]
@@ -603,6 +610,9 @@ export default function Home() {
     setLightDetailLink(null);
     setLightDetailPoll(false);
     setLightDetailQuote(false);
+    setLightDetailSeries([]);
+    setLightDetailActiveSeriesId(0);
+    nextLightDetailSeriesId.current = 1;
     setLightDetailTool(null);
     setLightDetailOpen(true);
   };
@@ -643,14 +653,35 @@ export default function Home() {
       link: lightDetailLink ?? undefined,
       poll: lightDetailPoll || undefined,
       quote: lightDetailQuote || undefined,
+      series: lightDetailSeries.map(item => item.text.trim()).filter(Boolean),
     }, ...current]);
     setLightCategory("전체");
     setLightDetailDraftSaved(false);
+    setLightDetailSeries([]);
+    setLightDetailActiveSeriesId(0);
     closeLightDetailComposer();
   };
 
-  const addLightDetailKey = (key: string) => setLightDetailText(current => `${current}${key}`);
-  const removeLightDetailCharacter = () => setLightDetailText(current => Array.from(current).slice(0, -1).join(""));
+  const addLightDetailSeries = () => {
+    if (!canAddLightDetailSeries) return;
+    const id = nextLightDetailSeriesId.current++;
+    setLightDetailSeries(current => [...current, { id, text: "" }]);
+    setLightDetailActiveSeriesId(id);
+  };
+
+  const removeLightDetailSeries = (id: number) => {
+    setLightDetailSeries(current => current.filter(item => item.id !== id));
+    if (lightDetailActiveSeriesId === id) setLightDetailActiveSeriesId(0);
+  };
+
+  const addLightDetailKey = (key: string) => {
+    if (lightDetailActiveSeriesId === 0) setLightDetailText(current => `${current}${key}`);
+    else setLightDetailSeries(current => current.map(item => item.id === lightDetailActiveSeriesId ? { ...item, text: `${item.text}${key}` } : item));
+  };
+  const removeLightDetailCharacter = () => {
+    if (lightDetailActiveSeriesId === 0) setLightDetailText(current => Array.from(current).slice(0, -1).join(""));
+    else setLightDetailSeries(current => current.map(item => item.id === lightDetailActiveSeriesId ? { ...item, text: Array.from(item.text).slice(0, -1).join("") } : item));
+  };
 
   return (
     <main className="prototype-page">
@@ -928,7 +959,7 @@ export default function Home() {
                     <div><b>{post.author}</b><small>{post.time} · {post.category}</small></div>
                     <button aria-label="더보기"><MoreHorizontal/></button>
                   </div>
-                  <p>{post.text}</p>
+                  {post.series?.length ? <div className="light-post-series">{[post.text, ...post.series].map((text,index) => <div key={`${post.id}-series-${index}`}><b>{index + 1}</b><p>{text}</p></div>)}</div> : <p>{post.text}</p>}
                   {post.image && <img className="light-post-image" src={post.image} alt={`${post.author}님의 글감 사진`}/>}
                   {post.location && <div className="light-post-location"><MapPin/>{post.location}</div>}
                   {post.link && <div className="light-post-link"><span><Link2/></span><div><b>같이 보고 싶은 링크</b><small>{post.link}</small></div><ChevronRight/></div>}
@@ -971,7 +1002,7 @@ export default function Home() {
                   <div className="editor-line"><Avatar/><small>1</small><i/></div>
                   <div className="editor-body">
                     <b>춘식크루</b>
-                    <textarea aria-label="상세 글감 내용" value={lightDetailText} autoFocus placeholder="더 자세한 이야기를 적어보세요" onChange={event => setLightDetailText(event.target.value)}/>
+                    <textarea aria-label="상세 글감 내용" value={lightDetailText} autoFocus placeholder="더 자세한 이야기를 적어보세요" onFocus={() => setLightDetailActiveSeriesId(0)} onChange={event => setLightDetailText(event.target.value)}/>
                     {lightDetailPhoto && <div className="light-detail-media"><img src={lightDetailPhoto} alt="첨부한 사진"/><button aria-label="사진 삭제" onClick={() => setLightDetailPhoto(null)}><X/></button></div>}
                     {lightDetailLocation && <div className="editor-attachment"><span><MapPin/></span><div><small>위치</small><b>{lightDetailLocation}</b></div><button onClick={() => setLightDetailLocation(null)}>×</button></div>}
                     {lightDetailLink && <div className="editor-attachment"><span><Link2/></span><div><small>링크</small><b>{lightDetailLink}</b></div><button onClick={() => setLightDetailLink(null)}>×</button></div>}
@@ -979,6 +1010,24 @@ export default function Home() {
                     {lightDetailQuote && <div className="light-detail-quote-preview"><MessageSquareQuote/><div><b>인용한 글</b><p>오늘 하루 중 가장 좋았던 순간은 언제였나요?</p></div><button onClick={() => setLightDetailQuote(false)}><X/></button></div>}
                   </div>
                 </article>
+                {lightDetailSeries.map((item,index) => <article className="editor-block light-detail-series-block" key={item.id}>
+                  <div className="editor-line"><Avatar/><small>{index + 2}</small><i/></div>
+                  <div className="editor-body light-detail-series-body">
+                    <button className="remove-series" aria-label={`${index + 2}번째 글감 삭제`} onClick={() => removeLightDetailSeries(item.id)}><X/></button>
+                    <textarea
+                      aria-label={`${index + 2}번째 상세 글감 내용`}
+                      value={item.text}
+                      autoFocus={lightDetailActiveSeriesId === item.id}
+                      placeholder="다른 콘텐츠 추가"
+                      onFocus={() => setLightDetailActiveSeriesId(item.id)}
+                      onChange={event => setLightDetailSeries(current => current.map(series => series.id === item.id ? { ...series, text: event.target.value } : series))}
+                    />
+                  </div>
+                </article>)}
+                <div className="series-add-row light-detail-add-row">
+                  <div className="series-add-track"><i/><button aria-label="시리즈 글감 추가" disabled={!canAddLightDetailSeries} onClick={addLightDetailSeries}><Plus/></button></div>
+                  <small>{canAddLightDetailSeries ? "다른 글감 추가" : "위 글감에 글자를 입력하면 추가할 수 있어요"}</small>
+                </div>
               </div>
               <div className="composer-bottom">
                 <div className="tool-bar">
