@@ -64,6 +64,8 @@ const quotePhotos = [
 const keyboardRows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 const koreanKeyboardRows = ["ㅂㅈㄷㄱㅅㅛㅕㅑㅐㅔ", "ㅁㄴㅇㄹㅎㅗㅓㅏㅣ", "ㅋㅌㅊㅍㅠㅜㅡ"];
 const MINI_TOKEN_START = 0xe000;
+const SPOILER_START = "\uE100";
+const SPOILER_END = "\uE101";
 const initialLightPosts: LightPost[] = [
   { id: 1, author: "버스 창가", time: "방금", category: "고민", text: "오늘 아침에 버스를 놓쳐서 학교에서 조금 떨어진 곳에 내려주는 버스를 탔는데, 몇 년 전 정말 좋아했던 사람이 있었어요. 그 친구가 항상 그 버스를 탄다고 들었는데 앞으로 같은 버스를 타면 너무 티가 날까요? ㅠㅠ", likes: 12, comments: 4, avatar: "🚌" },
   { id: 2, author: "연애 300일", time: "2분 전", category: "고민", text: "여자친구와 300일 정도 만났어요. 서로의 과거 연애와 상처를 잘 알고 있어서 주변 이성 문제에 더 조심해왔는데요.\n\n여러 명이 함께 만나는 건 괜찮지만 단둘이 만나는 건 피하자고 이야기했어요. 그런데 여자친구가 제 남자인 친구와 둘이 공부하는 정도는 괜찮다고 생각한다네요. 제가 과거 때문에 예민한 걸까요, 아니면 서로 조금 더 배려해야 할까요?", likes: 31, comments: 18, avatar: "💭" },
@@ -108,19 +110,30 @@ function createInlineMini(index: number) {
 function renderEditorValue(editor: HTMLDivElement, value: string) {
   editor.replaceChildren();
   let textBuffer = "";
+  let currentParent: HTMLElement = editor;
   const flushText = () => {
     if (!textBuffer) return;
-    editor.append(document.createTextNode(textBuffer));
+    currentParent.append(document.createTextNode(textBuffer));
     textBuffer = "";
   };
   for (const character of Array.from(value)) {
     const index = miniIndex(character);
     if (index >= 0) {
       flushText();
-      editor.append(createInlineMini(index));
+      currentParent.append(createInlineMini(index));
+    } else if (character === SPOILER_START) {
+      flushText();
+      const spoiler = document.createElement("span");
+      spoiler.className = "inline-spoiler-editor";
+      spoiler.dataset.spoiler = "true";
+      currentParent.append(spoiler);
+      currentParent = spoiler;
+    } else if (character === SPOILER_END) {
+      flushText();
+      currentParent = editor;
     } else if (character === "\n") {
       flushText();
-      editor.append(document.createElement("br"));
+      currentParent.append(document.createElement("br"));
     } else {
       textBuffer += character;
     }
@@ -135,16 +148,52 @@ function serializeEditor(editor: HTMLDivElement) {
     if (node.dataset.mini !== undefined) return miniToken(Number(node.dataset.mini));
     if (node.tagName === "BR") return "\n";
     const contents = Array.from(node.childNodes).map(serializeNode).join("");
+    if (node.dataset.spoiler !== undefined) return `${SPOILER_START}${contents}${SPOILER_END}`;
     return node.tagName === "DIV" && node.previousSibling ? `\n${contents}` : contents;
   };
   return Array.from(editor.childNodes).map(serializeNode).join("");
 }
 
-function renderRichText(value: string) {
+function renderInlineContent(value: string, keyPrefix: string) {
   return Array.from(value).map((character, index) => {
     const emoticonIndex = miniIndex(character);
-    return emoticonIndex >= 0 ? <MiniEmoticonSprite key={`mini-${index}`} index={emoticonIndex} className="published-mini-emoticon"/> : character;
+    return emoticonIndex >= 0 ? <MiniEmoticonSprite key={`${keyPrefix}-mini-${index}`} index={emoticonIndex} className="published-mini-emoticon"/> : character;
   });
+}
+
+function SpoilerFragment({ value, fragmentKey }: { value: string; fragmentKey: string }) {
+  const [revealed, setRevealed] = useState(false);
+  return <button
+    type="button"
+    className={`published-spoiler ${revealed ? "revealed" : ""}`}
+    aria-label={revealed ? "공개된 스포일러 내용" : "스포일러 내용 보기"}
+    onClick={() => setRevealed(true)}
+  >{renderInlineContent(value, fragmentKey)}</button>;
+}
+
+function RichTextContent({ value }: { value: string }) {
+  const segments: { text: string; spoiler: boolean }[] = [];
+  let text = "";
+  let spoiler = false;
+  const pushSegment = () => {
+    if (text) segments.push({ text, spoiler });
+    text = "";
+  };
+  for (const character of Array.from(value)) {
+    if (character === SPOILER_START) {
+      pushSegment();
+      spoiler = true;
+    } else if (character === SPOILER_END) {
+      pushSegment();
+      spoiler = false;
+    } else {
+      text += character;
+    }
+  }
+  pushSegment();
+  return <>{segments.map((segment, index) => segment.spoiler
+    ? <SpoilerFragment key={`spoiler-${index}`} value={segment.text} fragmentKey={`spoiler-${index}`}/>
+    : <span key={`plain-${index}`}>{renderInlineContent(segment.text, `plain-${index}`)}</span>)}</>;
 }
 
 function Avatar({ kind = "crew" }: { kind?: "crew" | "lion" | "leaf" }) {
@@ -197,7 +246,6 @@ export default function Home() {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [editingTopic, setEditingTopic] = useState(false);
   const [topicDraft, setTopicDraft] = useState("");
-  const [spoiler, setSpoiler] = useState(false);
   const [published, setPublished] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [showSelectionMenu, setShowSelectionMenu] = useState(false);
@@ -222,6 +270,7 @@ export default function Home() {
   const editorBodyRef = useRef<HTMLDivElement | null>(null);
   const seriesEditorRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const savedEditorRangeRef = useRef<Range | null>(null);
+  const selectedTextRangeRef = useRef<Range | null>(null);
   const nextSeriesId = useRef(1);
   const isComposingRef = useRef(false);
 
@@ -336,12 +385,12 @@ export default function Home() {
     setPoll(false);
     setQuotedPost(false);
     setQuoteTab("liked");
-    setSpoiler(false);
     setSelectedTopic(null);
     setEditingTopic(false);
     setTopicDraft("");
     setShowSelectionMenu(false);
     savedEditorRangeRef.current = null;
+    selectedTextRangeRef.current = null;
     setView("composer");
   };
 
@@ -407,13 +456,17 @@ export default function Home() {
     if (selectionTimer.current) clearTimeout(selectionTimer.current);
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !selection.rangeCount || !editorRef.current?.contains(selection.anchorNode)) {
+      selectedTextRangeRef.current = null;
       setShowSelectionMenu(false);
       return;
     }
     selectionTimer.current = setTimeout(() => {
       const currentSelection = window.getSelection();
       if (!currentSelection || currentSelection.isCollapsed || !currentSelection.rangeCount || !editorRef.current || !editorBodyRef.current) return;
-      const rangeRect = currentSelection.getRangeAt(0).getBoundingClientRect();
+      const currentRange = currentSelection.getRangeAt(0);
+      if (!editorRef.current.contains(currentRange.commonAncestorContainer)) return;
+      selectedTextRangeRef.current = currentRange.cloneRange();
+      const rangeRect = currentRange.getBoundingClientRect();
       const bodyRect = editorBodyRef.current.getBoundingClientRect();
       const menuWidth = Math.min(330, bodyRect.width);
       setSelectionMenuPosition({
@@ -422,6 +475,31 @@ export default function Home() {
       });
       setShowSelectionMenu(true);
     }, 550);
+  };
+
+  const applySpoilerToSelection = () => {
+    const editor = editorRef.current;
+    const storedRange = selectedTextRangeRef.current;
+    if (!editor || !storedRange || storedRange.collapsed || !editor.contains(storedRange.commonAncestorContainer)) return;
+    const range = storedRange.cloneRange();
+    const fragment = range.extractContents();
+    const spoiler = document.createElement("span");
+    spoiler.className = "inline-spoiler-editor";
+    spoiler.dataset.spoiler = "true";
+    spoiler.append(fragment);
+    range.insertNode(spoiler);
+    range.setStartAfter(spoiler);
+    range.collapse(true);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    savedEditorRangeRef.current = range.cloneRange();
+    selectedTextRangeRef.current = null;
+    const value = serializeEditor(editor);
+    if (activeSeriesId === 0) setCopy(value);
+    else setSeriesItems(current => current.map(item => item.id === activeSeriesId ? { ...item, text: value } : item));
+    setShowSelectionMenu(false);
+    flash("선택한 글자를 스포일러로 표시했어요");
   };
 
   const applySelectedMedia = () => {
@@ -598,9 +676,9 @@ export default function Home() {
           <div className="mobile-feed-scroll">
             {published && <article className="k-post fresh-post">
               <div className="post-head"><Avatar/><span><b>춘식크루</b><small>방금 전 · 판교</small></span><button aria-label="내 게시물 더보기" onClick={() => setPanel("post-menu")}><MoreHorizontal/></button></div>
-              {allSeriesContent.some(item => item.text.trim() || item.media.length) && <div className={`published-series ${spoiler ? "spoiler-copy" : ""}`}>{allSeriesContent.map((item,index) => (item.text.trim() || item.media.length) && <div className="published-series-item" key={item.id}>
+              {allSeriesContent.some(item => item.text.trim() || item.media.length) && <div className="published-series">{allSeriesContent.map((item,index) => (item.text.trim() || item.media.length) && <div className="published-series-item" key={item.id}>
                 <b>{index + 1}</b>
-                <div>{item.text && <p>{renderRichText(item.text)}</p>}{item.media.length > 0 && <div className={`post-media-grid count-${Math.min(item.media.length, 4)}`}>{item.media.map(media => <div className="post-media" key={media.id}><img className="post-image" src={media.src} alt={media.type === "video" ? "새로 올린 영상" : "새로 올린 사진"}/>{media.type === "video" && <span><Video/> 영상</span>}</div>)}</div>}</div>
+                <div>{item.text && <p><RichTextContent value={item.text}/></p>}{item.media.length > 0 && <div className={`post-media-grid count-${Math.min(item.media.length, 4)}`}>{item.media.map(media => <div className="post-media" key={media.id}><img className="post-image" src={media.src} alt={media.type === "video" ? "새로 올린 영상" : "새로 올린 사진"}/>{media.type === "video" && <span><Video/> 영상</span>}</div>)}</div>}</div>
               </div>)}</div>}
               {selectedSticker !== null && <div className="post-sticker"><StickerSprite index={selectedSticker}/></div>}
               {location && <div className="post-location"><MapPin/> {location}</div>}
@@ -649,7 +727,7 @@ export default function Home() {
                   onKeyUp={() => { if (!isComposingRef.current) handleEditorSelection(); }}
                   onBlur={() => window.setTimeout(() => setShowSelectionMenu(false), 160)}
                 />
-                {showSelectionMenu && activeSeriesId === 0 && <div className="selection-tools" style={{ left: selectionMenuPosition.left, top: selectionMenuPosition.top }}><button onMouseDown={event => event.preventDefault()} onClick={() => flash("내용을 오려냈어요")}>오려두기</button><button onMouseDown={event => event.preventDefault()} onClick={() => navigator.clipboard?.writeText(window.getSelection()?.toString() || activeCopy)}>복사하기</button><button onMouseDown={event => event.preventDefault()} onClick={() => flash("클립보드 내용을 붙여넣었어요")}>붙여넣기</button><button onMouseDown={event => event.preventDefault()} className={spoiler ? "active" : ""} onClick={() => setSpoiler(!spoiler)}>스포방지로 표시</button><button><ChevronRight/></button></div>}
+                {showSelectionMenu && activeSeriesId === 0 && <div className="selection-tools" style={{ left: selectionMenuPosition.left, top: selectionMenuPosition.top }}><button onMouseDown={event => event.preventDefault()} onClick={() => flash("내용을 오려냈어요")}>오려두기</button><button onMouseDown={event => event.preventDefault()} onClick={() => navigator.clipboard?.writeText(window.getSelection()?.toString() || activeCopy)}>복사하기</button><button onMouseDown={event => event.preventDefault()} onClick={() => flash("클립보드 내용을 붙여넣었어요")}>붙여넣기</button><button onMouseDown={event => event.preventDefault()} onClick={applySpoilerToSelection}>스포방지로 표시</button><button><ChevronRight/></button></div>}
                 {quotedPost && <QuotedPostCard removable onRemove={() => setQuotedPost(false)}/>}
                 {selectedSticker !== null && <div className="editor-sticker-card"><StickerSprite index={selectedSticker}/><button aria-label="이모티콘 삭제" onClick={() => setSelectedSticker(null)}><X/></button></div>}
                 {selectedMedia.length > 0 && <div className="editor-media-grid">
@@ -695,7 +773,7 @@ export default function Home() {
                   onKeyUp={() => { if (!isComposingRef.current) handleEditorSelection(); }}
                   onBlur={() => window.setTimeout(() => setShowSelectionMenu(false), 160)}
                 />
-                {showSelectionMenu && activeSeriesId === item.id && <div className="selection-tools" style={{ left: selectionMenuPosition.left, top: selectionMenuPosition.top }}><button onMouseDown={event => event.preventDefault()} onClick={() => flash("내용을 오려냈어요")}>오려두기</button><button onMouseDown={event => event.preventDefault()} onClick={() => navigator.clipboard?.writeText(window.getSelection()?.toString() || activeCopy)}>복사하기</button><button onMouseDown={event => event.preventDefault()} onClick={() => flash("클립보드 내용을 붙여넣었어요")}>붙여넣기</button><button onMouseDown={event => event.preventDefault()} className={spoiler ? "active" : ""} onClick={() => setSpoiler(!spoiler)}>스포방지로 표시</button><button><ChevronRight/></button></div>}
+                {showSelectionMenu && activeSeriesId === item.id && <div className="selection-tools" style={{ left: selectionMenuPosition.left, top: selectionMenuPosition.top }}><button onMouseDown={event => event.preventDefault()} onClick={() => flash("내용을 오려냈어요")}>오려두기</button><button onMouseDown={event => event.preventDefault()} onClick={() => navigator.clipboard?.writeText(window.getSelection()?.toString() || activeCopy)}>복사하기</button><button onMouseDown={event => event.preventDefault()} onClick={() => flash("클립보드 내용을 붙여넣었어요")}>붙여넣기</button><button onMouseDown={event => event.preventDefault()} onClick={applySpoilerToSelection}>스포방지로 표시</button><button><ChevronRight/></button></div>}
                 {item.media.length > 0 && <div className="editor-media-grid">
                   {item.media.map(media => <div className={`editor-photo ${media.type}`} key={media.id}>
                     <button className="media-edit" aria-label={`${index + 2}번째 콘텐츠 ${media.type === "video" ? "영상" : "사진"} 편집`} onClick={() => openAttachedMediaEditor(item.id, media, item.media)}><img src={media.src} alt={media.type === "video" ? "첨부한 영상" : "첨부한 사진"}/><span>편집</span></button>
