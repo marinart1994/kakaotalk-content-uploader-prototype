@@ -34,6 +34,8 @@ type LightPost = {
   series?: string[];
   sticker?: number;
 };
+type GhostMood = { id: number; avatar: string; text: string };
+type GhostPost = { id: number; avatar: string; author: string; time: string; category: string; text: string; image?: string };
 type Panel = "photo" | "photo-editor" | "video-editor" | "location" | "link" | "poll" | "quote" | "emoji" | "ai" | "publish" | "post-menu" | "success" | null;
 
 const photos = [
@@ -278,6 +280,27 @@ export default function Home() {
   const [exitPrompt, setExitPrompt] = useState<"full" | "light" | null>(null);
   const [fullDraftSaved, setFullDraftSaved] = useState(false);
   const [lightDetailDraftSaved, setLightDetailDraftSaved] = useState(false);
+  const [ghostMoodDraft, setGhostMoodDraft] = useState("");
+  const [ghostMoods, setGhostMoods] = useState<GhostMood[]>([
+    { id: 1, avatar: "😭", text: "오늘 왜 이렇게 힘들지" },
+    { id: 2, avatar: "🙋🏻‍♀️", text: "갑자기 소리 지르고 싶다" },
+    { id: 3, avatar: "🧢", text: "퇴근만 기다리는 중" },
+    { id: 4, avatar: "💜", text: "나 지금 너무 설레" },
+    { id: 5, avatar: "☁️", text: "아무 말이나 하고 싶어" },
+  ]);
+  const [ghostFeedDraft, setGhostFeedDraft] = useState("");
+  const [ghostKeyboardOpen, setGhostKeyboardOpen] = useState(false);
+  const [ghostPosts, setGhostPosts] = useState<GhostPost[]>([
+    { id: 1, avatar: "🚌", author: "버스 창가", time: "방금", category: "고민", text: "오늘 아침에 버스를 놓쳐서 학교에서 조금 떨어진 곳에 내려주는 버스를 탔는데, 몇 년 전 정말 좋아했던 사람이 있었어요. 앞으로 같은 버스를 타면 너무 티가 날까요? ㅠㅠ" },
+    { id: 2, avatar: "🏞️", author: "연애 300일", time: "2시간 전", category: "일상", text: "300일을 기념해서 작은 여행을 가기로 했어요! 혹시 서울 근교에 당일치기 좋은 장소가 있을까요? 💛" },
+  ]);
+  const [ghostEditorOpen, setGhostEditorOpen] = useState(false);
+  const [ghostEditorText, setGhostEditorText] = useState("");
+  const [ghostEditorPhoto, setGhostEditorPhoto] = useState<string | null>(null);
+  const [ghostEditorLocation, setGhostEditorLocation] = useState(false);
+  const [ghostEditorLink, setGhostEditorLink] = useState(false);
+  const [ghostEditorPoll, setGhostEditorPoll] = useState(false);
+  const [ghostEditorQuote, setGhostEditorQuote] = useState(false);
   const selectionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const editorBodyRef = useRef<HTMLDivElement | null>(null);
@@ -301,6 +324,7 @@ export default function Home() {
   const hasLightDetailContent = Boolean(lightDetailText.trim() || lightDetailPhoto || lightDetailLocation || lightDetailLink || lightDetailPoll || lightDetailQuote || lightDetailSeries.some(item => item.text.trim()));
   const lastLightDetailText = lightDetailSeries.length ? lightDetailSeries[lightDetailSeries.length - 1].text : lightDetailText;
   const canAddLightDetailSeries = Boolean(lastLightDetailText.trim());
+  const hasGhostEditorContent = Boolean(ghostEditorText.trim() || ghostEditorPhoto || ghostEditorLocation || ghostEditorLink || ghostEditorPoll || ghostEditorQuote);
 
   const topicSuggestions = combinedCopy.includes("오디세이") || combinedCopy.includes("신화") || combinedCopy.includes("영화")
     ? ["오디세이", "고대 신화", "영화 후기"]
@@ -318,6 +342,36 @@ export default function Home() {
   const openPostDetail = (source: DetailSource) => {
     setDetailSource(source);
     setPostDetailOpen(true);
+  };
+
+  const publishGhostMood = () => {
+    const text = ghostMoodDraft.trim();
+    if (!text) return;
+    const id = Date.now();
+    setGhostMoods(current => [...current.slice(-4), { id, avatar: "춘", text }]);
+    setGhostMoodDraft("");
+    window.setTimeout(() => setGhostMoods(current => current.filter(mood => mood.id !== id)), 600000);
+  };
+
+  const publishGhostFeed = () => {
+    const text = ghostFeedDraft.trim();
+    if (!text) return;
+    setGhostPosts(current => [{ id: Date.now(), avatar: "춘", author: "춘식크루", time: "방금", category: "일상", text }, ...current]);
+    setGhostFeedDraft("");
+    setGhostKeyboardOpen(false);
+  };
+
+  const publishGhostEditor = () => {
+    if (!hasGhostEditorContent) return;
+    const extras = [ghostEditorLocation && "📍 서울숲", ghostEditorLink && "🔗 같이 보고 싶은 링크", ghostEditorPoll && "☑️ 오늘의 선택 투표", ghostEditorQuote && "💬 인용한 글"].filter(Boolean).join("\n");
+    setGhostPosts(current => [{ id: Date.now(), avatar: "춘", author: "춘식크루", time: "방금", category: "일상", text: [ghostEditorText.trim(), extras].filter(Boolean).join("\n"), image: ghostEditorPhoto ?? undefined }, ...current]);
+    setGhostEditorText("");
+    setGhostEditorPhoto(null);
+    setGhostEditorLocation(false);
+    setGhostEditorLink(false);
+    setGhostEditorPoll(false);
+    setGhostEditorQuote(false);
+    setGhostEditorOpen(false);
   };
 
   const submitDetailComment = () => {
@@ -1250,6 +1304,81 @@ export default function Home() {
             <div className="home-indicator"/>
           </div>}
           <div className="home-indicator"/>
+        </section>
+      </section>
+
+      <section className="ghost-prototype-section" aria-labelledby="ghost-prototype-title">
+        <aside className="ghost-prototype-note">
+          <span>CONCEPT 03 · GHOST MESSAGE</span>
+          <h2 id="ghost-prototype-title">사라지는 기분과<br/>쌓이는 이야기</h2>
+          <p>광장에는 지금의 감정을 가볍게 남기고,<br/>채팅 입력창에서는 커뮤니티 글을 바로 게시해요.</p>
+          <div className="ghost-points"><b>10분 고스트 메시지</b><b>채팅형 게시</b><b>전체 에디터</b></div>
+        </aside>
+
+        <section className="ghost-phone" aria-label="고스트 메시지와 가벼운 채팅 프로토타입">
+          <StatusBar/>
+          <div className="ghost-screen">
+            <header className="light-now-header">
+              <h2>지금</h2>
+              <div><button aria-label="검색"><Search/></button><button aria-label="대화"><MessageCircle/></button><button aria-label="설정"><Settings/></button></div>
+            </header>
+            <div className="light-feed-tabs"><button>오픈채팅</button><button className="active">피드</button></div>
+
+            <section className="ghost-plaza" aria-label="카톡 광장">
+              <header><h3>카톡 광장</h3><span><i/>10분 후 사라져요</span></header>
+              <div className="ghost-bubbles">
+                {ghostMoods.map((mood,index) => <div className={`ghost-bubble bubble-${index % 5}`} key={mood.id}><span>{mood.avatar}</span><b>{mood.text}</b></div>)}
+              </div>
+              <div className="ghost-mood-compose"><input value={ghostMoodDraft} onChange={event => setGhostMoodDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter") publishGhostMood(); }} placeholder="지금 감정을 우다다 남겨보세요"/><button aria-label="기분 이모티콘"><Smile/></button><button aria-label="광장에 기분 남기기" disabled={!ghostMoodDraft.trim()} onClick={publishGhostMood}>↑</button></div>
+            </section>
+
+            <div className="ghost-feed-heading"><h3>가벼운 글감</h3><p>짧게 쓰고, 편하게 나누는 커뮤니티</p></div>
+            <nav className="ghost-categories" aria-label="글 카테고리"><button className="active">전체</button><button>고민</button><button>일상</button><button>질문</button></nav>
+            <div className={`ghost-feed-list ${ghostKeyboardOpen ? "keyboard-open" : ""}`}>
+              {ghostPosts.map(post => <article className="ghost-feed-post" key={post.id}>
+                <div className="ghost-post-head"><span>{post.avatar}</span><div><b>{post.author}</b><small>{post.time} · {post.category}</small></div><button aria-label="더보기"><MoreHorizontal/></button></div>
+                <p>{post.text}</p>
+                {post.image && <img src={post.image} alt="게시물 첨부 사진"/>}
+                <div><button><Heart/> 공감 12</button><i>·</i><button><MessageCircle/> 댓글 4</button></div>
+              </article>)}
+            </div>
+
+            <div className={`ghost-chat-compose ${ghostKeyboardOpen ? "keyboard-open" : ""}`}>
+              <div className="ghost-chat-row"><button className="ghost-plus" aria-label="전체 글 에디터 열기" onClick={() => { setGhostKeyboardOpen(false); setGhostEditorOpen(true); }}><Plus/></button><label><input value={ghostFeedDraft} onFocus={() => setGhostKeyboardOpen(true)} onChange={event => setGhostFeedDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter") publishGhostFeed(); }} placeholder="커뮤니티에 가볍게 남겨보세요"/><Smile/></label><button className="ghost-send" aria-label="커뮤니티에 게시" disabled={!ghostFeedDraft.trim()} onClick={publishGhostFeed}>↑</button></div>
+              {ghostKeyboardOpen && <div className="light-keyboard ghost-keyboard">
+                <div className="light-suggestions"><span>“갈나요?”</span><span>갈나요</span><span>갈나요ㅎㅎ</span></div>
+                {koreanKeyboardRows.map((row,rowIndex) => <div className={`light-key-row row-${rowIndex}`} key={`ghost-${row}`}>{rowIndex === 2 && <button className="utility">⇧</button>}{[...row].map(key => <button key={key} onMouseDown={event => event.preventDefault()} onClick={() => setGhostFeedDraft(current => `${current}${key}`)}>{key}</button>)}{rowIndex === 2 && <button className="utility" onMouseDown={event => event.preventDefault()} onClick={() => setGhostFeedDraft(current => Array.from(current).slice(0,-1).join(""))}>⌫</button>}</div>)}
+                <div className="light-key-row light-utility-row"><button>123</button><button onMouseDown={event => event.preventDefault()} onClick={() => setGhostFeedDraft(current => `${current}🙂`)}>☺</button><button className="light-space" onMouseDown={event => event.preventDefault()} onClick={() => setGhostFeedDraft(current => `${current} `)}>한글</button><button onMouseDown={event => event.preventDefault()} onClick={publishGhostFeed}>↵</button></div>
+                <div className="light-keyboard-foot"><Globe2/><Mic/></div>
+              </div>}
+            </div>
+
+            {ghostEditorOpen && <div className="ghost-editor-overlay">
+              <StatusBar/>
+              <div className="ghost-editor-screen">
+                <header className="composer-top"><button className="close-compose" aria-label="전체 에디터 닫기" onClick={() => setGhostEditorOpen(false)}><X/></button><span/><button className="draft-icon" aria-label="작성 옵션"><SlidersHorizontal/></button><button className="upload-button" disabled={!hasGhostEditorContent} onClick={publishGhostEditor}>올리기</button></header>
+                <div className="ghost-editor-content">
+                  <article className="editor-block"><div className="editor-line"><Avatar/><small>1</small><i/><button disabled={!ghostEditorText.trim()} aria-label="시리즈 추가"><Plus/></button></div><div className="editor-body"><b>춘식크루</b><textarea value={ghostEditorText} autoFocus onChange={event => setGhostEditorText(event.target.value)} placeholder="지금 떠오른 이야기를 적어보세요"/>
+                    {ghostEditorPhoto && <div className="light-detail-media"><img src={ghostEditorPhoto} alt="첨부한 사진"/><button aria-label="사진 삭제" onClick={() => setGhostEditorPhoto(null)}><X/></button></div>}
+                    {ghostEditorLocation && <button className="editor-location-chip" onClick={() => setGhostEditorLocation(false)}><MapPin/><span>서울숲</span></button>}
+                    {ghostEditorLink && <div className="editor-attachment"><span><Link2/></span><div><b>같이 보고 싶은 링크</b><small>brunch.co.kr</small></div><button onClick={() => setGhostEditorLink(false)}><X/></button></div>}
+                    {ghostEditorPoll && <div className="mini-poll"><b>오늘의 선택은?</b><span>천천히 더 생각해보기</span><span>지금 바로 도전하기</span></div>}
+                    {ghostEditorQuote && <div className="light-detail-quote-preview"><MessageSquareQuote/><div><b>인용한 글</b><p>오늘 하루 중 가장 좋았던 순간은 언제였나요?</p></div><button onClick={() => setGhostEditorQuote(false)}><X/></button></div>}
+                  </div></article>
+                </div>
+                <div className="composer-bottom ghost-editor-bottom"><div className="tool-bar">
+                  <button className={ghostEditorPhoto ? "active" : ""} aria-label="사진 추가" onClick={() => setGhostEditorPhoto(current => current ? null : photos[0])}><ImageIcon/></button>
+                  <button className={ghostEditorLocation ? "active" : ""} aria-label="위치 추가" onClick={() => setGhostEditorLocation(current => !current)}><MapPin/></button>
+                  <button className={ghostEditorLink ? "active" : ""} aria-label="링크 추가" onClick={() => setGhostEditorLink(current => !current)}><Link2/></button>
+                  <button className={ghostEditorPoll ? "active" : ""} aria-label="투표 추가" onClick={() => setGhostEditorPoll(current => !current)}><SquareCheckBig/></button>
+                  <button className={ghostEditorQuote ? "active" : ""} aria-label="인용 추가" onClick={() => setGhostEditorQuote(current => !current)}><MessageSquareQuote/></button>
+                  <button aria-label="이모티콘 추가" onClick={() => setGhostEditorText(current => `${current}🙂`)}><Smile/></button><i/><button className="ai-button" aria-label="AI 글감 추천" onClick={() => setGhostEditorText(current => current || "오늘 가장 기억에 남은 순간은") }><Sparkles/><b>AI</b></button>
+                </div><div className="fake-keyboard"><div className="suggestions"><span>I</span><span>The</span><span>I’m</span></div>{keyboardRows.map((row,rowIndex) => <div className={`key-row row-${rowIndex}`} key={`ghost-editor-${row}`}>{rowIndex === 2 && <button className="wide-key">⬆</button>}{[...row].map(key => <button key={key} onClick={() => setGhostEditorText(current => `${current}${key}`)}>{key}</button>)}{rowIndex === 2 && <button className="wide-key" onClick={() => setGhostEditorText(current => Array.from(current).slice(0,-1).join(""))}>⌫</button>}</div>)}<div className="key-row utility-row"><button>123</button><button onClick={() => setGhostEditorText(current => `${current}🙂`)}>☺</button><button className="space" onClick={() => setGhostEditorText(current => `${current} `)}>space <small>EN</small></button><button onClick={() => setGhostEditorText(current => `${current}\n`)}>↵</button></div><div className="keyboard-foot"><button aria-label="키보드 언어"><Globe2/></button><button aria-label="음성 입력"><Mic/></button></div></div></div>
+                <div className="home-indicator"/>
+              </div>
+            </div>}
+            <div className="home-indicator"/>
+          </div>
         </section>
       </section>
     </main>
