@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   BarChart3, BatteryMedium, Bookmark, ChevronLeft, ChevronRight, Globe2, Heart, ImageIcon,
   Link2, MapPin, MessageCircle, MessageSquareQuote, Mic, MoreHorizontal, Music2,
-  Check, Pencil, Plus, Repeat2, Search, Settings, Share2, ShoppingBag, Signal,
+  Check, Files, Pencil, Plus, Repeat2, Search, Settings, Share2, ShoppingBag, Signal,
   Send, SlidersHorizontal, Smile, Sparkles, SquareCheckBig, UserPlus,
   Trash2, UserRound, Video, Wifi, X,
 } from "lucide-react";
@@ -14,6 +14,19 @@ type DetailSource = "published" | "lion" | "leaf";
 type MediaType = "photo" | "video";
 type MediaItem = { id: number; src: string; type: MediaType };
 type SeriesItem = { id: number; text: string; media: MediaItem[] };
+type FullDraft = {
+  id: number;
+  savedAt: number;
+  copy: string;
+  seriesItems: SeriesItem[];
+  selectedMedia: MediaItem[];
+  selectedSticker: number | null;
+  location: string | null;
+  link: string | null;
+  poll: boolean;
+  quotedPost: boolean;
+  selectedTopic: string | null;
+};
 type LightDetailSeriesItem = { id: number; text: string };
 type LightCategory = "전체" | "고민" | "일상" | "질문";
 type LightDetailTool = "photo" | "location" | "link" | "poll" | "quote" | "ai" | null;
@@ -80,6 +93,34 @@ const initialLightPosts: LightPost[] = [
   { id: 5, author: "Pearl", time: "12분 전", category: "질문", text: "초6인데 한 달 용돈으로 4만 원을 받고 있어요. 다들 보통 얼마 정도 받나요?", likes: 5, comments: 13, avatar: "🫧" },
   { id: 6, author: "소담한 오후", time: "18분 전", category: "일상", text: "요즘 별일 아닌데도 괜히 지칠 때가 있어요. 잠깐 산책하고 따뜻한 음료를 마시니 조금 나아졌어요. 다들 기분 전환이 필요할 때 찾는 곳이 있나요?", likes: 16, comments: 6, avatar: "🐈" },
 ];
+const initialFullDrafts: FullDraft[] = [
+  {
+    id: 1002,
+    savedAt: new Date("2026-09-14T18:20:00+09:00").getTime(),
+    copy: "이번 주말, 바다를 보러 떠나고 싶다.",
+    seriesItems: [],
+    selectedMedia: [{ ...galleryItems[1] }],
+    selectedSticker: null,
+    location: null,
+    link: null,
+    poll: true,
+    quotedPost: false,
+    selectedTopic: "주말 여행",
+  },
+  {
+    id: 1001,
+    savedAt: new Date("2026-09-07T10:30:00+09:00").getTime(),
+    copy: "새로운 모험은 언제나 설레는 법!",
+    seriesItems: [],
+    selectedMedia: [],
+    selectedSticker: null,
+    location: null,
+    link: null,
+    poll: false,
+    quotedPost: false,
+    selectedTopic: "새로운 시작",
+  },
+];
 const initialGhostPosts: GhostPost[] = initialLightPosts.map(post => ({
   id: post.id,
   avatar: post.avatar,
@@ -113,6 +154,15 @@ const plazaCharacters = [
   { name: "프로도산책", label: "프로도" },
   { name: "제이지뮤직", label: "제이지" },
 ];
+const formatDraftDate = (savedAt: number) => new Intl.DateTimeFormat("ko-KR", {
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+}).format(savedAt);
+const getDraftPreview = (draft: FullDraft) => [draft.copy, ...draft.seriesItems.map(item => item.text)]
+  .find(text => text.trim())?.trim() || (draft.selectedSticker !== null ? "이모티콘 콘텐츠" : "첨부 콘텐츠");
+const getDraftMedia = (draft: FullDraft) => draft.selectedMedia[0] ?? draft.seriesItems.flatMap(item => item.media)[0];
 
 function StickerSprite({ index, className = "" }: { index: number; className?: string }) {
   const column = index % 6;
@@ -309,7 +359,10 @@ export default function Home() {
   const [lightDetailSeries, setLightDetailSeries] = useState<LightDetailSeriesItem[]>([]);
   const [lightDetailActiveSeriesId, setLightDetailActiveSeriesId] = useState(0);
   const [exitPrompt, setExitPrompt] = useState<"full" | "light" | null>(null);
-  const [fullDraftSaved, setFullDraftSaved] = useState(false);
+  const [fullDrafts, setFullDrafts] = useState<FullDraft[]>(initialFullDrafts);
+  const [fullDraftListOpen, setFullDraftListOpen] = useState(false);
+  const [draftStorageReady, setDraftStorageReady] = useState(false);
+  const [draftLoadRevision, setDraftLoadRevision] = useState(0);
   const [lightDetailDraftSaved, setLightDetailDraftSaved] = useState(false);
   const [ghostMoodDraft, setGhostMoodDraft] = useState("");
   const [ghostMoods, setGhostMoods] = useState<GhostMood[]>([
@@ -472,15 +525,10 @@ export default function Home() {
     setView("feed");
     setPanel(null);
     setExitPrompt(null);
+    setFullDraftListOpen(false);
   };
 
-  const startComposer = () => {
-    if (fullDraftSaved) {
-      setFullDraftSaved(false);
-      setExitPrompt(null);
-      setView("composer");
-      return;
-    }
+  const clearComposerContent = () => {
     setCopy("");
     setSeriesItems([]);
     setActiveSeriesId(0);
@@ -503,6 +551,10 @@ export default function Home() {
     setShowSelectionMenu(false);
     savedEditorRangeRef.current = null;
     selectedTextRangeRef.current = null;
+  };
+
+  const startComposer = () => {
+    clearComposerContent();
     setView("composer");
   };
 
@@ -512,8 +564,50 @@ export default function Home() {
   };
 
   const saveFullDraft = () => {
-    setFullDraftSaved(true);
+    const draft: FullDraft = {
+      id: Date.now(),
+      savedAt: Date.now(),
+      copy,
+      seriesItems: seriesItems.map(item => ({ ...item, media: item.media.map(media => ({ ...media })) })),
+      selectedMedia: selectedMedia.map(media => ({ ...media })),
+      selectedSticker,
+      location,
+      link,
+      poll,
+      quotedPost,
+      selectedTopic,
+    };
+    setFullDrafts(current => [draft, ...current]);
+    clearComposerContent();
     resetComposer();
+    flash("임시 저장함 맨 위에 저장했어요");
+  };
+
+  const loadFullDraft = (draft: FullDraft) => {
+    setCopy(draft.copy);
+    setSeriesItems(draft.seriesItems.map(item => ({ ...item, media: item.media.map(media => ({ ...media })) })));
+    setSelectedMedia(draft.selectedMedia.map(media => ({ ...media })));
+    setSelectedSticker(draft.selectedSticker);
+    setLocation(draft.location);
+    setLink(draft.link);
+    setPoll(draft.poll);
+    setQuotedPost(draft.quotedPost);
+    setSelectedTopic(draft.selectedTopic);
+    setTopicDraft(draft.selectedTopic ?? "");
+    setActiveSeriesId(0);
+    nextSeriesId.current = Math.max(0, ...draft.seriesItems.map(item => item.id)) + 1;
+    seriesEditorRefs.current.clear();
+    setPanel(null);
+    setExitPrompt(null);
+    setFullDraftListOpen(false);
+    setFullDrafts(current => current.filter(item => item.id !== draft.id));
+    setDraftLoadRevision(current => current + 1);
+    flash("임시 저장본을 불러왔어요");
+  };
+
+  const deleteFullDraft = (id: number) => {
+    setFullDrafts(current => current.filter(item => item.id !== id));
+    flash("임시 저장본을 삭제했어요");
   };
 
   const addSeriesContent = () => {
@@ -547,6 +641,25 @@ export default function Home() {
   };
 
   useEffect(() => {
+    try {
+      const storedDrafts = window.localStorage.getItem("kakao-content-full-drafts-v1");
+      if (storedDrafts) {
+        const parsedDrafts = JSON.parse(storedDrafts) as FullDraft[];
+        if (Array.isArray(parsedDrafts)) setFullDrafts(parsedDrafts);
+      }
+    } catch {
+      setFullDrafts(initialFullDrafts);
+    } finally {
+      setDraftStorageReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!draftStorageReady) return;
+    window.localStorage.setItem("kakao-content-full-drafts-v1", JSON.stringify(fullDrafts));
+  }, [draftStorageReady, fullDrafts]);
+
+  useEffect(() => {
     if (view !== "composer") return;
     requestAnimationFrame(() => {
       const rootEditor = seriesEditorRefs.current.get(0);
@@ -562,7 +675,7 @@ export default function Home() {
         activeEditor.focus();
       }
     });
-  }, [view]);
+  }, [view, draftLoadRevision]);
 
   useEffect(() => {
     let cursor = 0;
@@ -929,7 +1042,7 @@ export default function Home() {
           <button className="floating-create" aria-label="새 콘텐츠 만들기" onClick={startComposer}><Plus/></button>
           <nav className="bottom-nav" aria-label="카카오톡 탭"><button aria-label="친구"><UserRound/></button><button aria-label="채팅"><MessageCircle/><b>40</b></button><button className="active" aria-label="피드"><span><Smile/></span></button><button aria-label="쇼핑"><ShoppingBag/></button><button aria-label="더보기"><MoreHorizontal/></button></nav>
         </div> : <div className="screen composer-screen">
-          <header className="composer-top"><button className="close-compose" aria-label="작성 취소" onClick={requestComposerClose}><X/></button><span/><button className="draft-icon" aria-label="발행 옵션" onClick={() => setPanel("publish")}><SlidersHorizontal/></button><button className="upload-button" disabled={!hasComposerContent} onClick={() => setPanel("success")}>{seriesCount > 1 ? `${seriesCount}개 올리기` : "올리기"}</button></header>
+          <header className="composer-top"><button className="close-compose" aria-label="작성 취소" onClick={requestComposerClose}><X/></button><span/><button className={`draft-list-trigger ${fullDrafts.length ? "has-drafts" : ""}`} aria-label={`임시 저장함 ${fullDrafts.length}개`} onClick={() => setFullDraftListOpen(true)}><Files/>{fullDrafts.length > 0 && <b>{fullDrafts.length}</b>}</button><button className="draft-icon" aria-label="발행 옵션" onClick={() => setPanel("publish")}><SlidersHorizontal/></button><button className="upload-button" disabled={!hasComposerContent} onClick={() => setPanel("success")}>{seriesCount > 1 ? `${seriesCount}개 올리기` : "올리기"}</button></header>
           <div className="composer-scroll">
             <article className="editor-block">
               <div className="editor-line"><Avatar/><small>1</small><i/></div>
@@ -1115,9 +1228,29 @@ export default function Home() {
             {panel === "ai" && <><div className="ai-head"><span><Sparkles/></span><div><h3>AI 추천 주제</h3><p>작성한 내용을 바탕으로 추천했어요. 하나만 선택할 수 있어요.</p></div></div><div className="ai-topics">{topicSuggestions.map(topic => <button key={topic} className={selectedTopic === topic ? "selected" : ""} onClick={() => { setSelectedTopic(topic); setTopicDraft(topic); }}>#{topic}<span>{selectedTopic === topic ? "✓" : "+"}</span></button>)}</div><button className="sheet-primary" onClick={() => setPanel(null)}>추천 주제 적용</button></>}
             {panel === "publish" && <><h3>발행 옵션</h3><p className="sheet-lead">콘텐츠를 누구에게 보여줄지 선택해주세요.</p><div className="publish-options"><div><b>공개 여부</b><span><button className="active">전체</button><button>팔로워</button></span></div><div><b>댓글 작성 대상</b><span><button className="active">전체</button><button>팔로워</button></span></div><label><span><b>리포스트 및 인용 허용</b><small>다른 사람이 콘텐츠를 공유할 수 있어요</small></span><input type="checkbox" defaultChecked/></label><label><span><b>AI 관련 표시</b><small>추천 기능을 사용한 콘텐츠로 표시해요</small></span><input type="checkbox" defaultChecked/></label></div><button className="sheet-primary publish-now" onClick={() => setPanel("success")}>피드에 올리기</button></>}
             {panel === "post-menu" && <><h3>게시물 관리</h3><button className="delete-post-action" onClick={() => { setPublished(false); setPostDetailOpen(false); setPanel(null); flash("게시물을 삭제했어요"); }}><span><Trash2/></span><div><b>삭제하기</b><small>이 게시물을 피드에서 삭제합니다</small></div><ChevronRight/></button></>}
-            {panel === "success" && <div className="success-panel"><span>✓</span><small>PUBLISHED</small><h3>피드에 올렸어요!</h3><p>작성한 콘텐츠가 카카오톡 3탭에<br/>새로운 이야기로 추가됐습니다.</p><button onClick={() => {setPublished(true);setFullDraftSaved(false);setPanel(null);setView("feed");flash("콘텐츠가 발행됐어요");}}>피드에서 보기</button></div>}
+            {panel === "success" && <div className="success-panel"><span>✓</span><small>PUBLISHED</small><h3>피드에 올렸어요!</h3><p>작성한 콘텐츠가 카카오톡 3탭에<br/>새로운 이야기로 추가됐습니다.</p><button onClick={() => {setPublished(true);setPanel(null);setView("feed");flash("콘텐츠가 발행됐어요");}}>피드에서 보기</button></div>}
           </section>
         </div>}
+
+        {view === "composer" && fullDraftListOpen && <section className="draft-list-overlay" aria-label="임시 저장본 목록">
+          <header className="draft-list-header"><button onClick={() => setFullDraftListOpen(false)}>취소</button><h3>임시 저장본</h3><span>{fullDrafts.length}개</span></header>
+          <div className="draft-list-scroll">
+            {fullDrafts.length === 0 ? <div className="draft-list-empty"><Files/><b>저장된 콘텐츠가 없어요</b><p>작성 중인 글을 저장하면 이곳에서<br/>언제든 이어서 작성할 수 있어요.</p></div> : fullDrafts.map((draft,index) => {
+              const media = getDraftMedia(draft);
+              const preview = getDraftPreview(draft);
+              return <article className={`draft-list-card ${index === 0 ? "latest" : ""}`} key={draft.id}>
+                <button className="draft-list-main" onClick={() => loadFullDraft(draft)}>
+                  <div className="draft-list-meta"><Avatar/><span><b>춘식크루</b><small>{formatDraftDate(draft.savedAt)}{index === 0 && <em>최신</em>}</small></span></div>
+                  <p>{preview}</p>
+                  {media && <div className="draft-list-media"><img src={media.src} alt="임시 저장한 첨부 미디어"/>{media.type === "video" && <span><Video/> 영상</span>}</div>}
+                  {draft.poll && <div className="draft-list-poll"><span>예</span><span>아니요</span></div>}
+                  <div className="draft-list-foot">{draft.seriesItems.length > 0 ? `이어진 콘텐츠 ${draft.seriesItems.length + 1}개` : draft.selectedTopic ? `#${draft.selectedTopic}` : "탭하여 이어서 작성"}</div>
+                </button>
+                <button className="draft-list-delete" aria-label="임시 저장본 삭제" onClick={() => deleteFullDraft(draft.id)}><Trash2/></button>
+              </article>;
+            })}
+          </div>
+        </section>}
 
         {postDetailOpen && (detailSource !== "published" || published) && <div className="post-detail-overlay">
           <StatusBar/>
