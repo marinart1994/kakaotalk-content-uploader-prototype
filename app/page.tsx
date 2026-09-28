@@ -1129,7 +1129,7 @@ export default function Home() {
             {seriesItems.length > 0 && <div className="series-comment-note"><MessageCircle/> 각 콘텐츠에 댓글이 따로 달려요</div>}
           </div>
           <div className="composer-bottom">
-            <div className="tool-bar">
+            <div className="tool-bar primary-tool-bar">
               <button aria-label="사진 또는 영상 추가" onClick={() => openMediaPicker(activeSeriesId)}><ImageIcon/></button>
               <button aria-label="위치 추가" disabled={activeSeriesId !== 0} onClick={() => setPanel("location")}><MapPin/></button>
               <button aria-label="링크 추가" disabled={activeSeriesId !== 0 || activeMedia.length > 0} onClick={() => setPanel("link")}><Link2/></button>
