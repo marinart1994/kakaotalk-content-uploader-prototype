@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  BarChart3, BatteryMedium, Bookmark, ChevronLeft, ChevronRight, Globe2, Heart, ImageIcon,
+  Archive, BarChart3, BatteryMedium, Bookmark, ChevronLeft, ChevronRight, Globe2, Heart, ImageIcon,
   Link2, MapPin, MessageCircle, MessageSquareQuote, Mic, MoreHorizontal, Music2,
   Check, Files, Pencil, Plus, Repeat2, Search, Settings, Share2, ShoppingBag, Signal,
   Send, SlidersHorizontal, Smile, Sparkles, SquareCheckBig, UserPlus,
@@ -1042,7 +1042,7 @@ export default function Home() {
           <button className="floating-create" aria-label="새 콘텐츠 만들기" onClick={startComposer}><Plus/></button>
           <nav className="bottom-nav" aria-label="카카오톡 탭"><button aria-label="친구"><UserRound/></button><button aria-label="채팅"><MessageCircle/><b>40</b></button><button className="active" aria-label="피드"><span><Smile/></span></button><button aria-label="쇼핑"><ShoppingBag/></button><button aria-label="더보기"><MoreHorizontal/></button></nav>
         </div> : <div className="screen composer-screen">
-          <header className="composer-top"><button className="close-compose" aria-label="작성 취소" onClick={requestComposerClose}><X/></button><span/><button className={`draft-list-trigger ${fullDrafts.length ? "has-drafts" : ""}`} aria-label={`임시 저장함 ${fullDrafts.length}개`} onClick={() => setFullDraftListOpen(true)}><Files/>{fullDrafts.length > 0 && <b>{fullDrafts.length}</b>}</button><button className="draft-icon" aria-label="발행 옵션" onClick={() => setPanel("publish")}><SlidersHorizontal/></button><button className="upload-button" disabled={!hasComposerContent} onClick={() => setPanel("success")}>{seriesCount > 1 ? `${seriesCount}개 올리기` : "올리기"}</button></header>
+          <header className="composer-top"><button className="close-compose" aria-label="작성 취소" onClick={requestComposerClose}><X/></button><span/><div className="composer-top-actions"><button className="draft-list-trigger" aria-label={`임시 저장함 ${fullDrafts.length}개`} onClick={() => setFullDraftListOpen(true)}><Archive/></button><button className="draft-icon" aria-label="발행 옵션" onClick={() => setPanel("publish")}><SlidersHorizontal/></button><button className="upload-button" disabled={!hasComposerContent} onClick={() => setPanel("success")}>{seriesCount > 1 ? `${seriesCount}개 올리기` : "올리기"}</button></div></header>
           <div className="composer-scroll">
             <article className="editor-block">
               <div className="editor-line"><Avatar/><small>1</small><i/></div>
