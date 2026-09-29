@@ -1645,11 +1645,11 @@ export default function Home() {
               <div className="following-list">
                 <button className="following-card mine" onClick={() => setFourthStatusOpen(true)}>
                   <span className="following-bubble">{fourthPublishedStatus || "한마디 남기기"}</span>
-                  <span className="following-avatar profile-sprite profile-own" aria-label="별 캐릭터 프로필"/><i><Plus/></i><small>내 상태</small>
+                  <span className="following-avatar profile-sprite profile-own" aria-label="별 캐릭터 프로필"/><small>내 상태</small>
                 </button>
-                {[{ name:"김햄찌", status:"오늘도 열심히 굴러가는 중", badge:"★" },{ name:"진수", status:"04년생의 힙합도전기", badge:"♛" },{ name:"야메군", status:"서비스 기획 Q&A 열어요", badge:"♛" }].map((friend,index) => <button className="following-card" key={friend.name}>
+                {[{ name:"김햄찌", status:"오늘도 열심히 굴러가는 중" },{ name:"진수", status:"04년생의 힙합도전기" },{ name:"야메군", status:"서비스 기획 Q&A 열어요" }].map((friend,index) => <button className="following-card" key={friend.name}>
                   <span className="following-bubble">{friend.status}</span>
-                  <span className={`following-avatar profile-sprite profile-friend-${index + 1}`} aria-label={`${friend.name} 프로필`}/><i className="follow-badge">{friend.badge}</i><small>{friend.name}</small>
+                  <span className={`following-avatar profile-sprite profile-friend-${index + 1}`} aria-label={`${friend.name} 프로필`}/><small>{friend.name}</small>
                 </button>)}
               </div>
             </section>
