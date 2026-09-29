@@ -395,6 +395,11 @@ export default function Home() {
   const [fourthStatusText, setFourthStatusText] = useState("");
   const [fourthPublishedStatus, setFourthPublishedStatus] = useState("");
   const [fourthStatusAddon, setFourthStatusAddon] = useState<"music" | "location" | "gif" | null>(null);
+  const [fourthQuickDraft, setFourthQuickDraft] = useState("");
+  const [fourthQuickKeyboardOpen, setFourthQuickKeyboardOpen] = useState(false);
+  const [fourthQuickEmojiOpen, setFourthQuickEmojiOpen] = useState(false);
+  const [fourthQuickEmojiTab, setFourthQuickEmojiTab] = useState<"search" | "emoticon" | "mini" | "discover">("mini");
+  const [fourthQuickSticker, setFourthQuickSticker] = useState<number | null>(null);
   const selectionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const editorBodyRef = useRef<HTMLDivElement | null>(null);
@@ -494,6 +499,22 @@ export default function Home() {
     if (!status) return;
     setFourthPublishedStatus(status);
     setFourthStatusOpen(false);
+  };
+
+  const publishFourthQuick = () => {
+    const text = fourthQuickDraft.trim();
+    if (!text && fourthQuickSticker === null) return;
+    const category: Exclude<LightCategory, "전체"> = fourthCategory === "전체" ? "일상" : fourthCategory;
+    setFourthPosts(current => [{
+      id: Date.now(), author: "춘식크루", time: "방금", category,
+      text: fourthQuickSticker === null ? text : "", likes: 0, comments: 0, avatar: "⭐",
+      sticker: fourthQuickSticker ?? undefined,
+    }, ...current]);
+    setFourthQuickDraft("");
+    setFourthQuickSticker(null);
+    setFourthQuickKeyboardOpen(false);
+    setFourthQuickEmojiOpen(false);
+    setFourthCategory("전체");
   };
 
   const submitDetailComment = () => {
@@ -1615,7 +1636,7 @@ export default function Home() {
           <div className="fourth-screen">
             <header className="fourth-now-header">
               <h2>지금</h2>
-              <div><button aria-label="검색"><Search/></button><button className="fourth-bell" aria-label="알림"><Bell/><i/></button><button className="fourth-profile-menu" aria-label="프로필 설정"><span>⭐</span><Settings/></button></div>
+              <div><button aria-label="검색"><Search/></button><button className="fourth-bell" aria-label="알림"><Bell/><i/></button><button className="fourth-profile-menu" aria-label="프로필 설정"><span className="profile-sprite profile-own"/><Settings/></button></div>
             </header>
             <div className="fourth-feed-tabs"><button>오픈채팅</button><button className="active">피드</button></div>
 
@@ -1624,11 +1645,11 @@ export default function Home() {
               <div className="following-list">
                 <button className="following-card mine" onClick={() => setFourthStatusOpen(true)}>
                   <span className="following-bubble">{fourthPublishedStatus || "한마디 남기기"}</span>
-                  <span className="following-avatar star">⭐</span><i><Plus/></i><small>내 상태</small>
+                  <span className="following-avatar profile-sprite profile-own" aria-label="별 캐릭터 프로필"/><i><Plus/></i><small>내 상태</small>
                 </button>
-                {[{ name:"김햄찌", avatar:"🐹", status:"오늘도 열심히 굴러가는 중", badge:"★" },{ name:"진수", avatar:"🕶️", status:"04년생의 힙합도전기", badge:"♛" },{ name:"야메군", avatar:"🦸", status:"서비스 기획 Q&A 열어요", badge:"♛" }].map((friend,index) => <button className="following-card" key={friend.name}>
+                {[{ name:"김햄찌", status:"오늘도 열심히 굴러가는 중", badge:"★" },{ name:"진수", status:"04년생의 힙합도전기", badge:"♛" },{ name:"야메군", status:"서비스 기획 Q&A 열어요", badge:"♛" }].map((friend,index) => <button className="following-card" key={friend.name}>
                   <span className="following-bubble">{friend.status}</span>
-                  <span className={`following-avatar friend-${index + 1}`}>{friend.avatar}</span><i className="follow-badge">{friend.badge}</i><small>{friend.name}</small>
+                  <span className={`following-avatar profile-sprite profile-friend-${index + 1}`} aria-label={`${friend.name} 프로필`}/><i className="follow-badge">{friend.badge}</i><small>{friend.name}</small>
                 </button>)}
               </div>
             </section>
@@ -1637,21 +1658,48 @@ export default function Home() {
             <nav className="fourth-categories" aria-label="4번째 시안 글 카테고리">
               {(["전체", "고민", "일상", "질문"] as LightCategory[]).map(category => <button key={category} className={fourthCategory === category ? "active" : ""} onClick={() => setFourthCategory(category)}>{category}</button>)}
             </nav>
-            <div className="fourth-post-list">
+            <div className={`fourth-post-list ${fourthQuickKeyboardOpen || fourthQuickEmojiOpen ? "composer-open" : ""}`}>
               {filteredFourthPosts.map(post => <article className="fourth-post" key={post.id}>
                 <div className="fourth-post-head"><span>{post.avatar}</span><div><b>{post.author}</b><small>{post.time} · {post.category}</small></div><button aria-label="더보기"><MoreHorizontal/></button></div>
                 <p>{post.text}</p>
+                {post.sticker !== undefined && <div className="fourth-post-sticker"><StickerSprite index={post.sticker}/></div>}
                 {post.image && <img src={post.image} alt={`${post.author}님의 첨부 사진`}/>}
                 <div className="fourth-reactions"><button><Heart/> 공감 {post.likes}</button><i>·</i><button><MessageCircle/> 댓글 {post.comments}</button></div>
               </article>)}
             </div>
 
-            <div className="fourth-compose-row">
-              <button className="fourth-plus" aria-label="전체 에디터 열기" onClick={() => setFourthEditorOpen(true)}><Plus/></button>
-              <button className="fourth-quick-entry" onClick={() => setFourthStatusOpen(true)}><span>오늘의 생각을 남겨주세요</span><Smile/></button>
-              <button className="fourth-quick-send" aria-label="한마디 남기기" onClick={() => setFourthStatusOpen(true)}>↑</button>
+            {fourthQuickSticker !== null && <div className={`fourth-quick-sticker-preview ${fourthQuickKeyboardOpen || fourthQuickEmojiOpen ? "composer-open" : ""}`}><StickerSprite index={fourthQuickSticker}/><button aria-label="이모티콘 삭제" onClick={() => setFourthQuickSticker(null)}><X/></button></div>}
+            <div className={`fourth-compose-row ${fourthQuickKeyboardOpen ? "keyboard-open" : ""} ${fourthQuickEmojiOpen ? "emoji-open" : ""}`}>
+              <button className="fourth-plus" aria-label="전체 에디터 열기" onClick={() => { setFourthQuickKeyboardOpen(false); setFourthQuickEmojiOpen(false); setFourthEditorOpen(true); }}><Plus/></button>
+              <div className="fourth-quick-entry"><input value={fourthQuickDraft} onFocus={() => { setFourthQuickEmojiOpen(false); setFourthQuickKeyboardOpen(true); }} onChange={event => { setFourthQuickSticker(null); setFourthQuickDraft(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") publishFourthQuick(); }} placeholder="오늘의 생각을 남겨주세요"/><button aria-label="이모티콘 선택" onMouseDown={event => event.preventDefault()} onClick={() => { setFourthQuickKeyboardOpen(false); setFourthQuickEmojiOpen(true); }}><Smile/></button></div>
+              <button className="fourth-quick-send" aria-label="가벼운 글감 전송" disabled={!fourthQuickDraft.trim() && fourthQuickSticker === null} onClick={publishFourthQuick}>↑</button>
             </div>
             <nav className="fourth-bottom-nav" aria-label="하단 메뉴"><button><UserRound/></button><button><MessageCircle/><b>40</b></button><button className="active"><Smile/></button><button><ShoppingBag/></button><button><MoreHorizontal/></button></nav>
+
+            {fourthQuickKeyboardOpen && <div className="light-keyboard fourth-quick-keyboard">
+              <div className="light-suggestions"><span>“오늘”</span><span>오늘은</span><span>오늘도</span></div>
+              {koreanKeyboardRows.map((row,rowIndex) => <div className={`light-key-row row-${rowIndex}`} key={`fourth-quick-${row}`}>{rowIndex === 2 && <button className="utility">⇧</button>}{[...row].map(key => <button key={key} onMouseDown={event => event.preventDefault()} onClick={() => setFourthQuickDraft(current => `${current}${key}`)}>{key}</button>)}{rowIndex === 2 && <button className="utility" onMouseDown={event => event.preventDefault()} onClick={() => setFourthQuickDraft(current => Array.from(current).slice(0,-1).join(""))}>⌫</button>}</div>)}
+              <div className="light-key-row light-utility-row"><button>123</button><button onMouseDown={event => event.preventDefault()} onClick={() => { setFourthQuickKeyboardOpen(false); setFourthQuickEmojiOpen(true); }}>☺</button><button className="light-space" onMouseDown={event => event.preventDefault()} onClick={() => setFourthQuickDraft(current => `${current} `)}>한글</button><button onMouseDown={event => event.preventDefault()} onClick={publishFourthQuick}>↵</button></div>
+              <div className="light-keyboard-foot"><Globe2/><Mic/></div>
+            </div>}
+
+            {fourthQuickEmojiOpen && <div className="phone-overlay fourth-quick-emoji-overlay" onMouseDown={() => setFourthQuickEmojiOpen(false)}>
+              <section className="mobile-sheet panel-emoji fourth-quick-emoji-sheet" role="dialog" aria-modal="true" aria-label="가벼운 글감 이모티콘 선택" onMouseDown={event => event.stopPropagation()}>
+                <div className="emoticon-picker">
+                  <div className="emoticon-handle"/>
+                  <div className="emoticon-main-tabs">
+                    <button className={fourthQuickEmojiTab === "search" ? "active" : ""} onClick={() => setFourthQuickEmojiTab("search")}>검색</button><button className={fourthQuickEmojiTab === "emoticon" ? "active" : ""} onClick={() => setFourthQuickEmojiTab("emoticon")}>이모티콘</button><button className={fourthQuickEmojiTab === "mini" ? "active" : ""} onClick={() => setFourthQuickEmojiTab("mini")}>미니</button><button className={fourthQuickEmojiTab === "discover" ? "active" : ""} onClick={() => setFourthQuickEmojiTab("discover")}>발견</button><button className="emoticon-store" aria-label="이모티콘 스토어"><ShoppingBag/></button>
+                  </div>
+                  <div className="emoticon-packs">{[0,1,4,10,22].map((index,packIndex) => <button key={index} className={packIndex === 0 ? "active" : ""} onClick={() => setFourthQuickEmojiTab("mini")}><StickerSprite index={index}/>{packIndex === 0 && <i/>}</button>)}<button><Plus/></button><button><Settings/></button><button onClick={() => setFourthQuickEmojiOpen(false)}><X/></button></div>
+                  <div className="emoticon-content">
+                    {fourthQuickEmojiTab === "mini" && <><div className="emoticon-title"><b>핑크핑크 어피치</b><span>텍스트 옆에 자유롭게 붙여보세요 ›</span></div><div className="mini-emoticon-grid">{miniEmoticons.map(index => <button key={index} onClick={() => { const symbols = ["🩷","🎀","💕","🌸","✨","💌"]; setFourthQuickSticker(null); setFourthQuickDraft(current => `${current}${symbols[index % symbols.length]}`); }}><MiniEmoticonSprite index={index}/></button>)}</div></>}
+                    {fourthQuickEmojiTab === "emoticon" && <><div className="emoticon-title"><b>작은 회색 고양이 5</b><span>한 개만 보낼 수 있어요 ›</span></div><div className="sticker-grid compact">{stickerIndexes.slice(0,18).map(index => <button key={index} onClick={() => { setFourthQuickDraft(""); setFourthQuickSticker(index); setFourthQuickEmojiOpen(false); }}><StickerSprite index={index}/></button>)}</div></>}
+                    {fourthQuickEmojiTab === "search" && <><label className="emoticon-search"><Search/><input placeholder="이모티콘 검색" autoFocus/></label><div className="sticker-grid compact">{stickerIndexes.slice(0,12).map(index => <button key={index} onClick={() => { setFourthQuickDraft(""); setFourthQuickSticker(index); setFourthQuickEmojiOpen(false); }}><StickerSprite index={index}/></button>)}</div></>}
+                    {fourthQuickEmojiTab === "discover" && <><div className="emoticon-title"><b>추천 미니 이모티콘</b><span>오늘의 기분을 골라보세요 ›</span></div><div className="discover-emoticons">{[[0,4,8,12],[2,7,13,18],[5,11,17,23],[6,15,21,29]].map((group,index) => <button key={index} onClick={() => setFourthQuickEmojiTab("emoticon")}>{group.map(sticker => <StickerSprite index={sticker} key={sticker}/>)}</button>)}</div></>}
+                  </div>
+                </div>
+              </section>
+            </div>}
 
             {fourthEditorOpen && <div className="ghost-editor-overlay fourth-editor-overlay">
               <StatusBar/>
@@ -1683,7 +1731,7 @@ export default function Home() {
               <section className="fourth-status-screen" aria-label="한마디 상태 작성">
                 <button className="fourth-status-close" aria-label="상태 작성 닫기" onClick={() => setFourthStatusOpen(false)}><X/></button>
                 <div className="fourth-status-canvas">
-                  <div className="fourth-status-profile"><textarea value={fourthStatusText} autoFocus maxLength={40} placeholder="한마디 남기기" onChange={event => setFourthStatusText(event.target.value)}/><span className="fourth-status-avatar">⭐</span><i>🎨</i></div>
+                  <div className="fourth-status-profile"><textarea value={fourthStatusText} autoFocus maxLength={40} placeholder="한마디 남기기" onChange={event => setFourthStatusText(event.target.value)}/><span className="fourth-status-avatar profile-sprite profile-own" aria-label="별 캐릭터 프로필"/><i>🎨</i></div>
                   {fourthStatusAddon && <span className="fourth-status-addon">{fourthStatusAddon === "music" ? "🎵 오늘의 음악" : fourthStatusAddon === "location" ? "📍 지금 위치" : "GIF 움직이는 이미지"}</span>}
                   <div className="fourth-status-tools"><button className={fourthStatusAddon === "music" ? "active" : ""} onClick={() => setFourthStatusAddon(current => current === "music" ? null : "music")}><Music2/></button><button className={fourthStatusAddon === "location" ? "active" : ""} onClick={() => setFourthStatusAddon(current => current === "location" ? null : "location")}><MapPin/></button><button className={fourthStatusAddon === "gif" ? "active" : ""} onClick={() => setFourthStatusAddon(current => current === "gif" ? null : "gif")}>GIF</button></div>
                 </div>
