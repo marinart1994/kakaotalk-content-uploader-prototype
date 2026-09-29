@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Archive, BarChart3, BatteryMedium, Bookmark, ChevronLeft, ChevronRight, Globe2, Heart, ImageIcon,
+  Archive, BarChart3, BatteryMedium, Bell, Bookmark, ChevronLeft, ChevronRight, Globe2, Heart, ImageIcon,
   Link2, MapPin, MessageCircle, MessageSquareQuote, Mic, MoreHorizontal, Music2,
   Check, Files, Pencil, Plus, Repeat2, Search, Settings, Share2, ShoppingBag, Signal,
   Send, SlidersHorizontal, Smile, Sparkles, SquareCheckBig, UserPlus,
@@ -382,6 +382,19 @@ export default function Home() {
   const [ghostEditorLink, setGhostEditorLink] = useState(false);
   const [ghostEditorPoll, setGhostEditorPoll] = useState(false);
   const [ghostEditorQuote, setGhostEditorQuote] = useState(false);
+  const [fourthCategory, setFourthCategory] = useState<LightCategory>("전체");
+  const [fourthPosts, setFourthPosts] = useState<LightPost[]>(initialLightPosts);
+  const [fourthEditorOpen, setFourthEditorOpen] = useState(false);
+  const [fourthEditorText, setFourthEditorText] = useState("");
+  const [fourthEditorPhoto, setFourthEditorPhoto] = useState<string | null>(null);
+  const [fourthEditorLocation, setFourthEditorLocation] = useState(false);
+  const [fourthEditorLink, setFourthEditorLink] = useState(false);
+  const [fourthEditorPoll, setFourthEditorPoll] = useState(false);
+  const [fourthEditorQuote, setFourthEditorQuote] = useState(false);
+  const [fourthStatusOpen, setFourthStatusOpen] = useState(false);
+  const [fourthStatusText, setFourthStatusText] = useState("");
+  const [fourthPublishedStatus, setFourthPublishedStatus] = useState("");
+  const [fourthStatusAddon, setFourthStatusAddon] = useState<"music" | "location" | "gif" | null>(null);
   const selectionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const editorBodyRef = useRef<HTMLDivElement | null>(null);
@@ -406,6 +419,8 @@ export default function Home() {
   const lastLightDetailText = lightDetailSeries.length ? lightDetailSeries[lightDetailSeries.length - 1].text : lightDetailText;
   const canAddLightDetailSeries = Boolean(lastLightDetailText.trim());
   const hasGhostEditorContent = Boolean(ghostEditorText.trim() || ghostEditorPhoto || ghostEditorLocation || ghostEditorLink || ghostEditorPoll || ghostEditorQuote);
+  const hasFourthEditorContent = Boolean(fourthEditorText.trim() || fourthEditorPhoto || fourthEditorLocation || fourthEditorLink || fourthEditorPoll || fourthEditorQuote);
+  const filteredFourthPosts = fourthCategory === "전체" ? fourthPosts : fourthPosts.filter(post => post.category === fourthCategory);
 
   const topicSuggestions = combinedCopy.includes("오디세이") || combinedCopy.includes("신화") || combinedCopy.includes("영화")
     ? ["오디세이", "고대 신화", "영화 후기"]
@@ -453,6 +468,32 @@ export default function Home() {
     setGhostEditorPoll(false);
     setGhostEditorQuote(false);
     setGhostEditorOpen(false);
+  };
+
+  const publishFourthEditor = () => {
+    if (!hasFourthEditorContent) return;
+    const extras = [fourthEditorLocation && "📍 서울숲", fourthEditorLink && "🔗 함께 보고 싶은 링크", fourthEditorPoll && "☑️ 오늘의 선택 투표", fourthEditorQuote && "💬 인용한 글"].filter(Boolean).join("\n");
+    const category: Exclude<LightCategory, "전체"> = fourthCategory === "전체" ? "일상" : fourthCategory;
+    setFourthPosts(current => [{
+      id: Date.now(), author: "춘식크루", time: "방금", category,
+      text: [fourthEditorText.trim(), extras].filter(Boolean).join("\n") || "새로운 순간을 공유했어요.",
+      likes: 0, comments: 0, avatar: "⭐", image: fourthEditorPhoto ?? undefined,
+    }, ...current]);
+    setFourthEditorText("");
+    setFourthEditorPhoto(null);
+    setFourthEditorLocation(false);
+    setFourthEditorLink(false);
+    setFourthEditorPoll(false);
+    setFourthEditorQuote(false);
+    setFourthCategory("전체");
+    setFourthEditorOpen(false);
+  };
+
+  const publishFourthStatus = () => {
+    const status = fourthStatusText.trim();
+    if (!status) return;
+    setFourthPublishedStatus(status);
+    setFourthStatusOpen(false);
   };
 
   const submitDetailComment = () => {
@@ -1555,6 +1596,106 @@ export default function Home() {
                 </div><div className="fake-keyboard"><div className="suggestions"><span>I</span><span>The</span><span>I’m</span></div>{keyboardRows.map((row,rowIndex) => <div className={`key-row row-${rowIndex}`} key={`ghost-editor-${row}`}>{rowIndex === 2 && <button className="wide-key">⬆</button>}{[...row].map(key => <button key={key} onClick={() => setGhostEditorText(current => `${current}${key}`)}>{key}</button>)}{rowIndex === 2 && <button className="wide-key" onClick={() => setGhostEditorText(current => Array.from(current).slice(0,-1).join(""))}>⌫</button>}</div>)}<div className="key-row utility-row"><button>123</button><button onClick={() => setGhostEditorText(current => `${current}🙂`)}>☺</button><button className="space" onClick={() => setGhostEditorText(current => `${current} `)}>space <small>EN</small></button><button onClick={() => setGhostEditorText(current => `${current}\n`)}>↵</button></div><div className="keyboard-foot"><button aria-label="키보드 언어"><Globe2/></button><button aria-label="음성 입력"><Mic/></button></div></div></div>
                 <div className="home-indicator"/>
               </div>
+            </div>}
+            <div className="home-indicator"/>
+          </div>
+        </section>
+      </section>
+
+      <section className="fourth-prototype-section" aria-labelledby="fourth-prototype-title">
+        <aside className="fourth-prototype-note">
+          <span>OPTION 4 · FOLLOWING NOW</span>
+          <h2 id="fourth-prototype-title">친구의 지금을 보고,<br/>내 순간을 바로 공유해요</h2>
+          <p>상태 한마디는 가볍게 공유하고,<br/>더 긴 이야기는 전체 에디터에서 완성합니다.</p>
+          <div className="fourth-points"><b>팔로잉 상태</b><b>한마디 공유</b><b>전체 에디터</b></div>
+        </aside>
+
+        <section className="fourth-phone" aria-label="팔로잉의 지금과 가벼운 글감 프로토타입">
+          <StatusBar/>
+          <div className="fourth-screen">
+            <header className="fourth-now-header">
+              <h2>지금</h2>
+              <div><button aria-label="검색"><Search/></button><button className="fourth-bell" aria-label="알림"><Bell/><i/></button><button className="fourth-profile-menu" aria-label="프로필 설정"><span>⭐</span><Settings/></button></div>
+            </header>
+            <div className="fourth-feed-tabs"><button>오픈채팅</button><button className="active">피드</button></div>
+
+            <section className="following-now" aria-label="팔로잉의 지금">
+              <header><h3>팔로잉의 지금</h3><button>모두 보기 <ChevronRight/></button></header>
+              <div className="following-list">
+                <button className="following-card mine" onClick={() => setFourthStatusOpen(true)}>
+                  <span className="following-bubble">{fourthPublishedStatus || "한마디 남기기"}</span>
+                  <span className="following-avatar star">⭐</span><i><Plus/></i><small>내 상태</small>
+                </button>
+                {[{ name:"김햄찌", avatar:"🐹", status:"오늘도 열심히 굴러가는 중", badge:"★" },{ name:"진수", avatar:"🕶️", status:"04년생의 힙합도전기", badge:"♛" },{ name:"야메군", avatar:"🦸", status:"서비스 기획 Q&A 열어요", badge:"♛" }].map((friend,index) => <button className="following-card" key={friend.name}>
+                  <span className="following-bubble">{friend.status}</span>
+                  <span className={`following-avatar friend-${index + 1}`}>{friend.avatar}</span><i className="follow-badge">{friend.badge}</i><small>{friend.name}</small>
+                </button>)}
+              </div>
+            </section>
+
+            <div className="fourth-intro"><h3>가벼운 글감</h3><p>짧게 쓰고, 편하게 나누는 커뮤니티</p></div>
+            <nav className="fourth-categories" aria-label="4번째 시안 글 카테고리">
+              {(["전체", "고민", "일상", "질문"] as LightCategory[]).map(category => <button key={category} className={fourthCategory === category ? "active" : ""} onClick={() => setFourthCategory(category)}>{category}</button>)}
+            </nav>
+            <div className="fourth-post-list">
+              {filteredFourthPosts.map(post => <article className="fourth-post" key={post.id}>
+                <div className="fourth-post-head"><span>{post.avatar}</span><div><b>{post.author}</b><small>{post.time} · {post.category}</small></div><button aria-label="더보기"><MoreHorizontal/></button></div>
+                <p>{post.text}</p>
+                {post.image && <img src={post.image} alt={`${post.author}님의 첨부 사진`}/>}
+                <div className="fourth-reactions"><button><Heart/> 공감 {post.likes}</button><i>·</i><button><MessageCircle/> 댓글 {post.comments}</button></div>
+              </article>)}
+            </div>
+
+            <div className="fourth-compose-row">
+              <button className="fourth-plus" aria-label="전체 에디터 열기" onClick={() => setFourthEditorOpen(true)}><Plus/></button>
+              <button className="fourth-quick-entry" onClick={() => setFourthStatusOpen(true)}><span>오늘의 생각을 남겨주세요</span><Smile/></button>
+              <button className="fourth-quick-send" aria-label="한마디 남기기" onClick={() => setFourthStatusOpen(true)}>↑</button>
+            </div>
+            <nav className="fourth-bottom-nav" aria-label="하단 메뉴"><button><UserRound/></button><button><MessageCircle/><b>40</b></button><button className="active"><Smile/></button><button><ShoppingBag/></button><button><MoreHorizontal/></button></nav>
+
+            {fourthEditorOpen && <div className="ghost-editor-overlay fourth-editor-overlay">
+              <StatusBar/>
+              <div className="ghost-editor-screen">
+                <header className="composer-top"><button className="close-compose" aria-label="전체 에디터 닫기" onClick={() => setFourthEditorOpen(false)}><X/></button><span/><button className="draft-icon" aria-label="작성 옵션"><SlidersHorizontal/></button><button className="upload-button" disabled={!hasFourthEditorContent} onClick={publishFourthEditor}>올리기</button></header>
+                <div className="ghost-editor-content fourth-editor-content">
+                  <article className="editor-block"><div className="editor-line"><Avatar/><small>1</small><i/><button disabled={!fourthEditorText.trim()} aria-label="시리즈 추가"><Plus/></button></div><div className="editor-body"><b>춘식크루</b><textarea value={fourthEditorText} autoFocus onChange={event => setFourthEditorText(event.target.value)} placeholder="지금 떠오른 이야기를 적어보세요"/>
+                    {fourthEditorPhoto && <div className="light-detail-media"><img src={fourthEditorPhoto} alt="첨부한 사진"/><button aria-label="사진 삭제" onClick={() => setFourthEditorPhoto(null)}><X/></button></div>}
+                    {fourthEditorLocation && <button className="editor-location-chip" onClick={() => setFourthEditorLocation(false)}><MapPin/><span>서울숲</span></button>}
+                    {fourthEditorLink && <div className="editor-attachment"><span><Link2/></span><div><b>함께 보고 싶은 링크</b><small>brunch.co.kr</small></div><button onClick={() => setFourthEditorLink(false)}><X/></button></div>}
+                    {fourthEditorPoll && <div className="mini-poll"><b>오늘의 선택은?</b><span>천천히 더 생각해보기</span><span>지금 바로 도전하기</span></div>}
+                    {fourthEditorQuote && <div className="light-detail-quote-preview"><MessageSquareQuote/><div><b>인용한 글</b><p>오늘 하루 중 가장 좋았던 순간은 언제였나요?</p></div><button onClick={() => setFourthEditorQuote(false)}><X/></button></div>}
+                  </div></article>
+                </div>
+                <div className="composer-bottom ghost-editor-bottom"><div className="tool-bar primary-tool-bar">
+                  <button className={fourthEditorPhoto ? "active" : ""} aria-label="사진 추가" onClick={() => setFourthEditorPhoto(current => current ? null : photos[0])}><ImageIcon/></button>
+                  <button className={fourthEditorLocation ? "active" : ""} aria-label="위치 추가" onClick={() => setFourthEditorLocation(current => !current)}><MapPin/></button>
+                  <button className={fourthEditorLink ? "active" : ""} aria-label="링크 추가" onClick={() => setFourthEditorLink(current => !current)}><Link2/></button>
+                  <button className={fourthEditorPoll ? "active" : ""} aria-label="투표 추가" onClick={() => setFourthEditorPoll(current => !current)}><SquareCheckBig/></button>
+                  <button className={fourthEditorQuote ? "active" : ""} aria-label="인용 추가" onClick={() => setFourthEditorQuote(current => !current)}><MessageSquareQuote/></button>
+                  <button aria-label="이모티콘 추가" onClick={() => setFourthEditorText(current => `${current}🙂`)}><Smile/></button><i/><button className="ai-button" aria-label="AI 글감 추천" onClick={() => setFourthEditorText(current => current || "오늘 가장 기억에 남은 순간은") }><Sparkles/><b>AI</b></button>
+                </div><div className="fake-keyboard"><div className="suggestions"><span>I</span><span>The</span><span>I’m</span></div>{keyboardRows.map((row,rowIndex) => <div className={`key-row row-${rowIndex}`} key={`fourth-editor-${row}`}>{rowIndex === 2 && <button className="wide-key">⬆</button>}{[...row].map(key => <button key={key} onClick={() => setFourthEditorText(current => `${current}${key}`)}>{key}</button>)}{rowIndex === 2 && <button className="wide-key" onClick={() => setFourthEditorText(current => Array.from(current).slice(0,-1).join(""))}>⌫</button>}</div>)}<div className="key-row utility-row"><button>123</button><button onClick={() => setFourthEditorText(current => `${current}🙂`)}>☺</button><button className="space" onClick={() => setFourthEditorText(current => `${current} `)}>space <small>EN</small></button><button onClick={() => setFourthEditorText(current => `${current}\n`)}>↵</button></div><div className="keyboard-foot"><button aria-label="키보드 언어"><Globe2/></button><button aria-label="음성 입력"><Mic/></button></div></div></div>
+                <div className="home-indicator"/>
+              </div>
+            </div>}
+
+            {fourthStatusOpen && <div className="fourth-status-overlay">
+              <StatusBar/>
+              <section className="fourth-status-screen" aria-label="한마디 상태 작성">
+                <button className="fourth-status-close" aria-label="상태 작성 닫기" onClick={() => setFourthStatusOpen(false)}><X/></button>
+                <div className="fourth-status-canvas">
+                  <div className="fourth-status-profile"><textarea value={fourthStatusText} autoFocus maxLength={40} placeholder="한마디 남기기" onChange={event => setFourthStatusText(event.target.value)}/><span className="fourth-status-avatar">⭐</span><i>🎨</i></div>
+                  {fourthStatusAddon && <span className="fourth-status-addon">{fourthStatusAddon === "music" ? "🎵 오늘의 음악" : fourthStatusAddon === "location" ? "📍 지금 위치" : "GIF 움직이는 이미지"}</span>}
+                  <div className="fourth-status-tools"><button className={fourthStatusAddon === "music" ? "active" : ""} onClick={() => setFourthStatusAddon(current => current === "music" ? null : "music")}><Music2/></button><button className={fourthStatusAddon === "location" ? "active" : ""} onClick={() => setFourthStatusAddon(current => current === "location" ? null : "location")}><MapPin/></button><button className={fourthStatusAddon === "gif" ? "active" : ""} onClick={() => setFourthStatusAddon(current => current === "gif" ? null : "gif")}>GIF</button></div>
+                </div>
+                <div className="fourth-status-actions"><button><UserPlus/>친구와 공유하기 <ChevronRight/></button><button disabled={!fourthStatusText.trim()} onClick={publishFourthStatus}>공유하기</button></div>
+                <div className="light-keyboard fourth-status-keyboard">
+                  <div className="light-suggestions"><span>“테스트테스트”</span><span>테스트테스트는</span><span>테스트해요</span></div>
+                  {koreanKeyboardRows.map((row,rowIndex) => <div className={`light-key-row row-${rowIndex}`} key={`fourth-status-${row}`}>{rowIndex === 2 && <button className="utility">⇧</button>}{[...row].map(key => <button key={key} onMouseDown={event => event.preventDefault()} onClick={() => setFourthStatusText(current => `${current}${key}`)}>{key}</button>)}{rowIndex === 2 && <button className="utility" onMouseDown={event => event.preventDefault()} onClick={() => setFourthStatusText(current => Array.from(current).slice(0,-1).join(""))}>⌫</button>}</div>)}
+                  <div className="light-key-row light-utility-row"><button>123</button><button onClick={() => setFourthStatusText(current => `${current}🙂`)}>☺</button><button className="light-space" onClick={() => setFourthStatusText(current => `${current} `)}>한글</button><button onClick={publishFourthStatus}>↵</button></div>
+                  <div className="light-keyboard-foot"><Globe2/><Mic/></div>
+                </div>
+                <div className="home-indicator"/>
+              </section>
             </div>}
             <div className="home-indicator"/>
           </div>
